@@ -1287,6 +1287,7 @@ export class ChainService {
             substrateInfo: storedChainInfo.substrateInfo,
             bitcoinInfo: storedChainInfo.bitcoinInfo ?? null,
             tonInfo: storedChainInfo.tonInfo,
+            cardanoInfo: storedChainInfo.cardanoInfo ?? null,
             isTestnet: storedChainInfo.isTestnet,
             chainStatus: storedChainInfo.chainStatus,
             icon: storedChainInfo.icon,

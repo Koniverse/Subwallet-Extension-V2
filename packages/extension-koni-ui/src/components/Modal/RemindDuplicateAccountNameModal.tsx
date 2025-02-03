@@ -54,6 +54,7 @@ function Component ({ className }: Props): React.ReactElement<Props> {
       <SwModal
         className={CN(className)}
         closable={true}
+        destroyOnClose={true}
         footer={footerModal}
         id={RemindDuplicateAccountNameModalId}
         maskClosable={false}

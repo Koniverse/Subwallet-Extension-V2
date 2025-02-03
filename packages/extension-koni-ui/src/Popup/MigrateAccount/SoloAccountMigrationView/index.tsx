@@ -19,20 +19,30 @@ type Props = ThemeProps & {
 
 function Component ({ onApprove, onCompleteMigrationProcess, sessionId, soloAccountToBeMigratedGroups }: Props) {
   const [currentProcessOrdinal, setCurrentProcessOrdinal] = useState<number>(1);
-  const totalProcessSteps = soloAccountToBeMigratedGroups.length;
+  const [totalProcessSteps, setTotalProcessSteps] = useState<number>(soloAccountToBeMigratedGroups.length);
 
-  const performNextProcess = useCallback(() => {
+  const performNextProcess = useCallback((increaseProcessOrdinal = true) => {
     if (currentProcessOrdinal === totalProcessSteps) {
       onCompleteMigrationProcess();
 
       return;
     }
 
-    setCurrentProcessOrdinal((prev) => prev + 1);
+    if (increaseProcessOrdinal) {
+      setCurrentProcessOrdinal((prev) => prev + 1);
+    }
   }, [currentProcessOrdinal, onCompleteMigrationProcess, totalProcessSteps]);
 
   const onSkip = useCallback(() => {
-    performNextProcess();
+    setTotalProcessSteps((prev) => {
+      if (prev > 0) {
+        return prev - 1;
+      }
+
+      return prev;
+    });
+
+    performNextProcess(false);
   }, [performNextProcess]);
 
   const _onApprove = useCallback(async (soloAccounts: SoloAccountToBeMigrated[], accountName: string) => {
