@@ -824,7 +824,7 @@ export class ChainService {
     /**
      * Disable chain if not found provider
      * */
-    if (!endpoint && !providerName) {
+    if (!endpoint || !providerName) {
       this.disableChain(chainInfo.slug);
 
       return;
@@ -1248,10 +1248,25 @@ export class ChainService {
 
           this.updateChainConnectionStatus(storedSlug, _ChainConnectionStatus.DISCONNECTED);
 
+          const providers = storedChainInfo.providers;
+          const { providerKey } = randomizeProvider(providers);
+          let selectedProvider = providerKey;
+
+          const storedProviderKey = storedChainInfo.currentProvider;
+          const storedProviderValue = storedChainInfo.providers[storedProviderKey] || '';
+
+          if (storedProviderValue?.startsWith('light') || storedProviderKey?.startsWith(_CUSTOM_PREFIX)) {
+            const savedProviderKey = Object.keys(providers).find((key) => providers[key] === storedProviderValue);
+
+            if (savedProviderKey) {
+              selectedProvider = savedProviderKey;
+            }
+          }
+
           newStorageData.push({
             ...storedChainSettingMap[storedSlug],
             active: storedChainInfo.active,
-            currentProvider: storedChainInfo.currentProvider,
+            currentProvider: selectedProvider,
             manualTurnOff
           });
 
