@@ -26,10 +26,11 @@ interface Hotkey {
 
 export interface RawDelegateState {
   data: Array<{
-    delegate: {
+    hotkey_name: string;
+    hotkey: {
       ss58: string;
     };
-    balance: string;
+    stake: string;
   }>;
 }
 
@@ -55,6 +56,10 @@ export const BITTENSOR_API_KEY_3 = process.env.BITTENSOR_API_KEY_3 || '';
 export const BITTENSOR_API_KEY_4 = process.env.BITTENSOR_API_KEY_4 || '';
 export const BITTENSOR_API_KEY_5 = process.env.BITTENSOR_API_KEY_5 || '';
 export const BITTENSOR_API_KEY_6 = process.env.BITTENSOR_API_KEY_6 || '';
+export const BITTENSOR_API_KEY_7 = process.env.BITTENSOR_API_KEY_7 || '';
+export const BITTENSOR_API_KEY_8 = process.env.BITTENSOR_API_KEY_8 || '';
+export const BITTENSOR_API_KEY_9 = process.env.BITTENSOR_API_KEY_9 || '';
+export const BITTENSOR_API_KEY_10 = process.env.BITTENSOR_API_KEY_10 || '';
 
 function random (...keys: string[]) {
   const validKeys = keys.filter((key) => key);
@@ -73,7 +78,7 @@ export async function fetchDelegates (): Promise<ValidatorResponse> {
   const apiKey = bittensorApiKey();
 
   return new Promise(function (resolve) {
-    fetch('https://api-prod-v2.taostats.io/api/validator/latest/v1', {
+    fetch('https://api.taostats.io/api/validator/latest/v1', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -89,7 +94,7 @@ export async function fetchTaoDelegateState (address: string): Promise<RawDelega
   const apiKey = bittensorApiKey();
 
   return new Promise(function (resolve) {
-    fetch(`https://api-prod-v2.taostats.io/api/delegation/balance/latest/v1?nominator=${address}`, {
+    fetch(`https://api.taostats.io/api/stake_balance/latest/v1?coldkey=${address}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -296,10 +301,13 @@ export default class TaoNativeStakingPoolHandler extends BaseParaStakingPoolHand
           const delegateStateInfo = rawDelegateStateInfo.data;
 
           for (const delegate of delegateStateInfo) {
-            bnTotalBalance = bnTotalBalance.add(new BN(delegate.balance));
+            const name = delegate.hotkey_name || delegate.hotkey.ss58;
+
+            bnTotalBalance = bnTotalBalance.add(new BN(delegate.stake));
+
             delegatorState.push({
-              owner: delegate.delegate.ss58,
-              amount: delegate.balance.toString()
+              owner: name,
+              amount: delegate.stake
             });
           }
 
