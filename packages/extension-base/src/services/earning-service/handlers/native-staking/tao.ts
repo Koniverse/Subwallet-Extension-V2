@@ -72,8 +72,6 @@ export const bittensorApiKey = (): string => {
 export async function fetchDelegates (): Promise<ValidatorResponse> {
   const apiKey = bittensorApiKey();
 
-  console.log('Apikey1', apiKey);
-
   return new Promise(function (resolve) {
     fetch('https://api-prod-v2.taostats.io/api/validator/latest/v1', {
       method: 'GET',
@@ -89,8 +87,6 @@ export async function fetchDelegates (): Promise<ValidatorResponse> {
 
 export async function fetchTaoDelegateState (address: string): Promise<RawDelegateState> {
   const apiKey = bittensorApiKey();
-
-  console.log('Apikey2', apiKey);
 
   return new Promise(function (resolve) {
     fetch(`https://api-prod-v2.taostats.io/api/delegation/balance/latest/v1?nominator=${address}`, {
