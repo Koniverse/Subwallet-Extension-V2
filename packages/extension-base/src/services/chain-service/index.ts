@@ -1130,6 +1130,7 @@ export class ChainService {
       // Reselect provider for chain
       const updateCurrentProvider = (providers: Record<string, string>, storedChainInfo: IChain, storeSlug: string, active: boolean, forceFistProvider = false): string => {
         const manualTurnOff = !!storedChainInfo.manualTurnOff;
+        // For case only custom providers in list, randomize function will infinite loop, so force select first provider
         const { providerKey } = forceFistProvider ? { providerKey: Object.keys(providers)[0] } : randomizeProvider(providers);
         let selectedProvider = providerKey;
 
@@ -1229,6 +1230,7 @@ export class ChainService {
             };
 
             const providers = storedChainInfo.providers;
+            // This case, providers are all custom providers, need force select first provider
             const selectedProvider = updateCurrentProvider(providers, storedChainInfo, storedSlug, storedChainInfo.active, true);
 
             this.dataMap.chainStateMap[storedSlug] = {
