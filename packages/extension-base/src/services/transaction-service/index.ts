@@ -1123,7 +1123,13 @@ export default class TransactionService {
           } as SignerResult;
         }
       } as Signer,
-      withSignedTransaction: true
+      withSignedTransaction: true,
+      assetId: {
+        parents: 1,
+        interior: {
+          X1: 3369
+        }
+      }
     };
 
     // if (_isRuntimeUpdated(signedExtensions)) {
