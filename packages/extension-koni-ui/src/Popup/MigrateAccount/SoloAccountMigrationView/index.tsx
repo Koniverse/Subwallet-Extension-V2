@@ -19,6 +19,7 @@ type Props = ThemeProps & {
 
 function Component ({ onApprove, onCompleteMigrationProcess, sessionId, soloAccountToBeMigratedGroups }: Props) {
   const [currentProcessOrdinal, setCurrentProcessOrdinal] = useState<number>(1);
+  const [currentToBeMigratedGroupIndex, setCurrentToBeMigratedGroupIndex] = useState<number>(0);
   const [totalProcessSteps, setTotalProcessSteps] = useState<number>(soloAccountToBeMigratedGroups.length);
 
   const performNextProcess = useCallback((increaseProcessOrdinal = true) => {
@@ -27,6 +28,8 @@ function Component ({ onApprove, onCompleteMigrationProcess, sessionId, soloAcco
 
       return;
     }
+
+    setCurrentToBeMigratedGroupIndex((prev) => prev + 1);
 
     if (increaseProcessOrdinal) {
       setCurrentProcessOrdinal((prev) => prev + 1);
@@ -59,7 +62,7 @@ function Component ({ onApprove, onCompleteMigrationProcess, sessionId, soloAcco
     performNextProcess();
   }, [onApprove, performNextProcess, sessionId]);
 
-  const currentSoloAccountToBeMigratedGroup = soloAccountToBeMigratedGroups[currentProcessOrdinal - 1];
+  const currentSoloAccountToBeMigratedGroup = soloAccountToBeMigratedGroups[currentToBeMigratedGroupIndex];
 
   useEffect(() => {
     // keep the session alive while in this view
