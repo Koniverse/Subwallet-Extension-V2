@@ -859,7 +859,8 @@ export class ChainService {
           body: JSON.stringify(requestBody)
         })
           // eslint-disable-next-line @typescript-eslint/no-empty-function
-          .then(() => {})
+          .then(() => {
+          })
           .catch((error) => console.error('Error connecting to the report API:', error));
       }
 
@@ -1126,6 +1127,33 @@ export class ChainService {
     } else {
       const mergedChainInfoMap: Record<string, _ChainInfo> = defaultChainInfoMap;
 
+      // Reselect provider for chain
+      const updateCurrentProvider = (providers: Record<string, string>, storedChainInfo: IChain, storeSlug: string, active: boolean, forceFistProvider = false): string => {
+        const manualTurnOff = !!storedChainInfo.manualTurnOff;
+        const { providerKey } = forceFistProvider ? { providerKey: Object.keys(providers)[0] } : randomizeProvider(providers);
+        let selectedProvider = providerKey;
+
+        const storedProviderKey = storedChainInfo.currentProvider;
+        const storedProviderValue = storedChainInfo.providers[storedProviderKey] || '';
+
+        if (storedProviderValue?.startsWith('light') || storedProviderKey?.startsWith(_CUSTOM_PREFIX)) {
+          const savedProviderKey = Object.keys(providers).find((key) => providers[key] === storedProviderValue);
+
+          if (savedProviderKey) {
+            selectedProvider = savedProviderKey;
+          }
+        }
+
+        newStorageData.push({
+          ...mergedChainInfoMap[storeSlug],
+          active,
+          currentProvider: selectedProvider,
+          manualTurnOff
+        });
+
+        return selectedProvider;
+      };
+
       for (const [storedSlug, storedChainInfo] of Object.entries(storedChainSettingMap)) {
         const chainInfo = defaultChainInfoMap[storedSlug];
         const manualTurnOff = !!storedChainInfo.manualTurnOff;
@@ -1146,26 +1174,13 @@ export class ChainService {
 
           mergedChainInfoMap[storedSlug].providers = providers;
 
-          const { providerKey } = randomizeProvider(providers);
-          let selectedProvider = providerKey;
-
-          const storedProviderKey = storedChainInfo.currentProvider;
-          const storedProviderValue = storedChainInfo.providers[storedProviderKey] || '';
-
-          if (storedProviderValue?.startsWith('light') || storedProviderKey?.startsWith(_CUSTOM_PREFIX)) {
-            const savedProviderKey = Object.keys(providers).find((key) => providers[key] === storedProviderValue);
-
-            if (savedProviderKey) {
-              selectedProvider = savedProviderKey;
-            }
-          }
-
           // Merge current provider
           // let currentProvider = storedChainInfo.currentProvider;
           // const providerValue = storedChainInfo.providers[selectedProvider] || '';
 
           const hasProvider = Object.values(providers).length > 0;
           const canActive = hasProvider && chainInfo.chainStatus === _ChainStatus.ACTIVE;
+          const selectedProvider = updateCurrentProvider(providers, storedChainInfo, storedSlug, canActive && storedChainInfo.active);
 
           this.dataMap.chainStateMap[storedSlug] = {
             currentProvider: selectedProvider,
@@ -1175,35 +1190,25 @@ export class ChainService {
           };
 
           this.updateChainConnectionStatus(storedSlug, _ChainConnectionStatus.DISCONNECTED);
-
-          newStorageData.push({
-            ...mergedChainInfoMap[storedSlug],
-            active: canActive && storedChainInfo.active,
-            currentProvider: selectedProvider,
-            manualTurnOff
-          });
         } else if (_isCustomChain(storedSlug)) {
           // only custom chains are left
           // check custom chain duplicated with predefined chain => merge into predefined chain
           const duplicatedDefaultSlug = this.checkExistedPredefinedChain(defaultChainInfoMap, storedChainInfo.substrateInfo?.genesisHash, storedChainInfo.evmInfo?.evmChainId);
 
           if (duplicatedDefaultSlug.length > 0) { // merge custom chain with existed chain
-            mergedChainInfoMap[duplicatedDefaultSlug].providers = { ...storedChainInfo.providers, ...mergedChainInfoMap[duplicatedDefaultSlug].providers };
+            const providers = { ...storedChainInfo.providers, ...mergedChainInfoMap[duplicatedDefaultSlug].providers };
+
+            mergedChainInfoMap[duplicatedDefaultSlug].providers = providers;
+            const selectedProvider = updateCurrentProvider(providers, storedChainInfo, duplicatedDefaultSlug, storedChainInfo.active);
+
             this.dataMap.chainStateMap[duplicatedDefaultSlug] = {
-              currentProvider: storedChainInfo.currentProvider,
+              currentProvider: selectedProvider,
               slug: duplicatedDefaultSlug,
               active: storedChainInfo.active,
               manualTurnOff
             };
 
             this.updateChainConnectionStatus(duplicatedDefaultSlug, _ChainConnectionStatus.DISCONNECTED);
-
-            newStorageData.push({
-              ...mergedChainInfoMap[duplicatedDefaultSlug],
-              active: storedChainInfo.active,
-              currentProvider: storedChainInfo.currentProvider,
-              manualTurnOff
-            });
 
             deprecatedChainMap[storedSlug] = duplicatedDefaultSlug;
 
@@ -1222,54 +1227,20 @@ export class ChainService {
               icon: storedChainInfo.icon,
               extraInfo: storedChainInfo.extraInfo
             };
+
+            const providers = storedChainInfo.providers;
+            const selectedProvider = updateCurrentProvider(providers, storedChainInfo, storedSlug, storedChainInfo.active, true);
+
             this.dataMap.chainStateMap[storedSlug] = {
-              currentProvider: storedChainInfo.currentProvider, // TODO: review
+              currentProvider: selectedProvider, // TODO: review
               slug: storedSlug,
               active: storedChainInfo.active,
               manualTurnOff
             };
 
             this.updateChainConnectionStatus(storedSlug, _ChainConnectionStatus.DISCONNECTED);
-
-            newStorageData.push({
-              ...mergedChainInfoMap[storedSlug],
-              active: storedChainInfo.active,
-              currentProvider: storedChainInfo.currentProvider, // TODO: review
-              manualTurnOff
-            });
           }
         } else { // added chain from patch
-          this.dataMap.chainStateMap[storedSlug] = {
-            currentProvider: storedChainInfo.currentProvider,
-            slug: storedSlug,
-            active: storedChainInfo.active,
-            manualTurnOff
-          };
-
-          this.updateChainConnectionStatus(storedSlug, _ChainConnectionStatus.DISCONNECTED);
-
-          const providers = storedChainInfo.providers;
-          const { providerKey } = randomizeProvider(providers);
-          let selectedProvider = providerKey;
-
-          const storedProviderKey = storedChainInfo.currentProvider;
-          const storedProviderValue = storedChainInfo.providers[storedProviderKey] || '';
-
-          if (storedProviderValue?.startsWith('light') || storedProviderKey?.startsWith(_CUSTOM_PREFIX)) {
-            const savedProviderKey = Object.keys(providers).find((key) => providers[key] === storedProviderValue);
-
-            if (savedProviderKey) {
-              selectedProvider = savedProviderKey;
-            }
-          }
-
-          newStorageData.push({
-            ...storedChainSettingMap[storedSlug],
-            active: storedChainInfo.active,
-            currentProvider: selectedProvider,
-            manualTurnOff
-          });
-
           mergedChainInfoMap[storedSlug] = {
             slug: storedSlug,
             name: storedChainInfo.name,
@@ -1283,6 +1254,18 @@ export class ChainService {
             icon: storedChainInfo.icon,
             extraInfo: storedChainInfo.extraInfo
           };
+
+          const providers = storedChainInfo.providers;
+          const selectedProvider = updateCurrentProvider(providers, storedChainInfo, storedSlug, storedChainInfo.active);
+
+          this.dataMap.chainStateMap[storedSlug] = {
+            currentProvider: selectedProvider,
+            slug: storedSlug,
+            active: storedChainInfo.active,
+            manualTurnOff
+          };
+
+          this.updateChainConnectionStatus(storedSlug, _ChainConnectionStatus.DISCONNECTED);
 
           deprecatedChainMap[storedSlug] = storedSlug; // todo: set a better name
         }
