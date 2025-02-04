@@ -46,7 +46,6 @@ import { BalanceItem, BasicTxErrorType, CurrentAccountInfo, EvmFeeInfo, RequestC
 import { isManifestV3, stripUrl, targetIsWeb } from '@subwallet/extension-base/utils';
 import { createPromiseHandler } from '@subwallet/extension-base/utils/promise';
 import { MetadataDef, ProviderMeta } from '@subwallet/extension-inject/types';
-import subwalletApiSdk from '@subwallet/subwallet-api-sdk';
 import { keyring } from '@subwallet/ui-keyring';
 import BN from 'bn.js';
 import { t } from 'i18next';
@@ -142,9 +141,6 @@ export default class KoniState {
   private waitStarting: Promise<void> | null = null;
 
   constructor (providers: Providers = {}) {
-    // Init subwallet api sdk
-    subwalletApiSdk.init(process.env.SUBWALLET_API || '');
-
     this.providers = providers;
 
     this.eventService = new EventService();
