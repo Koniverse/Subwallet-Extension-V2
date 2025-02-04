@@ -19,6 +19,7 @@ type Props = ThemeProps & {
   extraButton?: JSX.Element
   showExtraButton?: boolean;
   autoFocus?: boolean;
+  simpleLayout?: boolean;
 }
 
 const Component: React.FC<Props> = ({ actionBtnIcon, autoFocus,
@@ -29,7 +30,7 @@ const Component: React.FC<Props> = ({ actionBtnIcon, autoFocus,
   placeholder,
   searchValue,
   showActionBtn,
-  showExtraButton = false }) => {
+  showExtraButton = false, simpleLayout }) => {
   // CONTROLLED STATE
   // const [value, setValue] = useState<string>(searchValue)
 
@@ -63,6 +64,32 @@ const Component: React.FC<Props> = ({ actionBtnIcon, autoFocus,
     />
   ), [extraButton]);
 
+  if (simpleLayout) {
+    return (
+      <div className={CN(className)}>
+        <Input.Search
+          autoFocus={autoFocus}
+          className='__search-input'
+          onChange={handleInputChange}
+          placeholder={placeholder}
+          prefix={<Icon phosphorIcon={MagnifyingGlass} />}
+          size='md'
+          suffix={
+            showActionBtn && (
+              <Button
+                icon={actionBtnIcon}
+                onClick={onClickActionBtn}
+                size='xs'
+                type='ghost'
+              />
+            )
+          }
+          value={searchValue}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={CN('search-container', className)}>
       <div className='right-section'>
@@ -94,8 +121,10 @@ const Component: React.FC<Props> = ({ actionBtnIcon, autoFocus,
 
 const Search = styled(Component)<Props>(({ theme: { token } }: Props) => {
   return {
-    display: 'grid',
-    width: '100%',
+    '&.search-container': {
+      display: 'grid',
+      width: '100%'
+    },
 
     '.right-section': {
       justifySelf: 'end',

@@ -21,3 +21,4 @@ export * from './strings';
 export * from './transaction';
 export * from './wallet';
 export * from './error';
+export * from './session';

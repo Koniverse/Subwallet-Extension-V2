@@ -407,6 +407,7 @@ const Component: React.FC<Props> = ({ className }: Props) => {
           onSearch={handleSearch}
           placeholder={t<string>('Account name')}
           searchValue={searchValue}
+          simpleLayout={true}
         />
         <SwList
           className={'__list-container'}

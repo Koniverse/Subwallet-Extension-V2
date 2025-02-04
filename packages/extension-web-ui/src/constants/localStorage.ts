@@ -40,6 +40,8 @@ export const CREATE_RETURN = 'account.create-return';
 
 export const CROWDLOAN_UNLOCK_TIME = 'event.crowdloan-unlock-time';
 
+export const LATEST_SESSION = 'general.latest-session';
+
 export const UPGRADE_DUPLICATE_ACCOUNT_NAME = 'general.upgrade-duplicate-account-name';
 
 export const ADDRESS_INPUT_AUTO_FORMAT_VALUE = 'component.address-input.auto-format-value'; // value: boolean
