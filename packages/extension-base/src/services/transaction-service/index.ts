@@ -1129,7 +1129,9 @@ export default class TransactionService {
         interior: {
           X1: 3369
         }
-      }
+      },
+      // todo: also test with this
+      // tip: ...
     };
 
     // if (_isRuntimeUpdated(signedExtensions)) {
