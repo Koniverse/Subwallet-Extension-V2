@@ -75,6 +75,7 @@ export const bittensorApiKey = (): string => {
 /* Fetch data */
 
 export async function fetchDelegates (): Promise<ValidatorResponse> {
+  console.log('Bittensor', [BITTENSOR_API_KEY_7, BITTENSOR_API_KEY_8, BITTENSOR_API_KEY_9, BITTENSOR_API_KEY_10]);
   const apiKey = bittensorApiKey();
 
   return new Promise(function (resolve) {
