@@ -151,7 +151,7 @@ const Component: React.FC<Props> = (props: Props) => {
         (await getAllAddress(start, end)).forEach(({ address }, index) => {
           rs[start + index] = {
             accountIndex: start + index,
-            name: `Ledger ${accountMigrateNetworkName} ${accountMigrateNetworkName ? `(${accountName})` : accountName} ${start + index + 1}`,
+            name: `Ledger ${accountMigrateNetworkName} ${accountMigrateNetworkName ? `(${accountName})` : accountName} ${start + index + 1} - ${address.slice(-4)}`,
             address: address
           };
         });
