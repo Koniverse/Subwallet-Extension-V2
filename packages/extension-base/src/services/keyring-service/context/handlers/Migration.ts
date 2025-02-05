@@ -219,6 +219,8 @@ export class AccountMigrationHandler extends AccountBaseHandler {
 
       this.state.upsertAccountProxyByKey({ id: upcomingProxyId, name: accountName, isMigrationDone: false });
 
+      const soloAccountProxyIds: string[] = [];
+
       keypairTypes.forEach((type) => {
         const suri = getSuri(mnemonic, type);
         const { derivePath } = keyExtractSuri(suri);
@@ -228,6 +230,7 @@ export class AccountMigrationHandler extends AccountBaseHandler {
         };
 
         const rs = keyring.addUri(suri, metadata, type);
+        soloAccountProxyIds.push(rs.json.address);
         const address = rs.pair.address;
 
         this.state._addAddressToAuthList(address, true);
@@ -237,10 +240,8 @@ export class AccountMigrationHandler extends AccountBaseHandler {
       this.migrateDerivedSoloAccountRelationship(soloAccounts);
       this.state.upsertAccountProxyByKey({ id: upcomingProxyId, name: accountName, isMigrationDone: true });
 
-      // Reupdate account name
-      const oldProxyIds = soloAccounts.map((account) => account.proxyId);
-
-      oldProxyIds.forEach((oldProxyId) => {
+      // Re-update account name
+      soloAccountProxyIds.forEach((oldProxyId) => {
         const pair = keyring.getPair(oldProxyId);
 
         keyring.saveAccountMeta(pair, { ...pair.meta, name: accountName });
@@ -249,7 +250,7 @@ export class AccountMigrationHandler extends AccountBaseHandler {
       // Update current account after migrating
       const currentAccountProxyId = this.state.currentAccount.proxyId;
 
-      if (oldProxyIds.includes(currentAccountProxyId)) {
+      if (soloAccountProxyIds.includes(currentAccountProxyId)) {
         this.state.saveCurrentAccountProxyId(upcomingProxyId);
       }
     } catch (error) {
