@@ -12,12 +12,12 @@ import useGoBackFromCreateAccount from '@subwallet/extension-web-ui/hooks/accoun
 import useFocusById from '@subwallet/extension-web-ui/hooks/form/useFocusById';
 import useAutoNavigateToCreatePassword from '@subwallet/extension-web-ui/hooks/router/useAutoNavigateToCreatePassword';
 import useDefaultNavigate from '@subwallet/extension-web-ui/hooks/router/useDefaultNavigate';
-import { createAccountExternalV2 } from '@subwallet/extension-web-ui/messaging';
+import { createAccountExternalV2, validateAccountName } from '@subwallet/extension-web-ui/messaging';
 import { RootState } from '@subwallet/extension-web-ui/stores';
 import { ThemeProps } from '@subwallet/extension-web-ui/types';
 import { convertFieldToObject, simpleCheckForm } from '@subwallet/extension-web-ui/utils/form/form';
 import { readOnlyScan } from '@subwallet/extension-web-ui/utils/scanner/attach';
-import { Form, Icon, PageIcon } from '@subwallet/react-ui';
+import { Form, Icon, Input, PageIcon } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { Eye } from 'phosphor-react';
 import { Callbacks, FieldData, RuleObject } from 'rc-field-form/lib/interface';
@@ -25,11 +25,14 @@ import React, { useCallback, useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import styled from 'styled-components';
+import { AccountExternalErrorCode } from '@subwallet/extension-base/background/KoniTypes';
+import { isSameAddress } from '@subwallet/extension-base/utils';
 
 type Props = ThemeProps;
 
 interface ReadOnlyAccountInput {
   address?: string;
+  name: string;
 }
 
 const FooterIcon = (
@@ -59,6 +62,7 @@ const Component: React.FC<Props> = ({ className }: Props) => {
   const [form] = Form.useForm<ReadOnlyAccountInput>();
 
   const [reformatAddress, setReformatAddress] = useState('');
+  const [isHideAccountNameInput, setIsHideAccountNameInput] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isEthereum, setIsEthereum] = useState(false);
   const [isDisable, setIsDisable] = useState(true);
@@ -91,44 +95,80 @@ const Component: React.FC<Props> = ({ className }: Props) => {
     if (result) {
       // For each account, check if the address already exists return promise reject
       for (const account of accounts) {
-        if (account.address === result.content) {
+        if (isSameAddress(account.address, result.content)) {
           setReformatAddress('');
+          setIsHideAccountNameInput(true);
 
-          return Promise.reject(t('Account name already in use'));
+          return Promise.reject(t('Account already exists'));
         }
       }
     } else {
       setReformatAddress('');
+      setIsHideAccountNameInput(true);
 
       if (value !== '') {
         return Promise.reject(t('Invalid address'));
       }
     }
 
+    setIsHideAccountNameInput(false);
+
     return Promise.resolve();
   }, [accounts, t]);
 
+  const accountNameValidator = useCallback(async (rule: RuleObject, value: string) => {
+    if (value) {
+      try {
+        const { isValid } = await validateAccountName({ name: value });
+
+        if (!isValid) {
+          return Promise.reject(t('Account name already in use'));
+        }
+      } catch (e) {
+        return Promise.reject(t('Account name invalid'));
+      }
+    }
+
+    return Promise.resolve();
+  }, [t]);
+
   const onSubmit = useCallback(() => {
     setLoading(true);
+    const accountName = form.getFieldValue('name') as string;
 
-    if (reformatAddress) {
+    if (reformatAddress && accountName) {
       createAccountExternalV2({
         name: accountName,
         address: reformatAddress,
         genesisHash: '',
-        isEthereum: isEthereum,
         isAllowed: true,
         isReadOnly: true
       })
         .then((errors) => {
           if (errors.length) {
-            form.setFields([{ name: fieldName, errors: errors.map((e) => e.message) }]);
+            const errorNameInputs: string[] = [];
+            const errorAddressInputs: string[] = [];
+
+            errors.forEach((error) => {
+              if (error.code === AccountExternalErrorCode.INVALID_ADDRESS) {
+                errorAddressInputs.push(error.message);
+              } else if (error.message.toLowerCase().includes('account name already exists')) {
+                errorNameInputs.push(error.message);
+              } else {
+                errorAddressInputs.push(t('Invalid address'));
+              }
+            });
+
+            form.setFields([
+              { name: 'address', errors: errorAddressInputs.length ? errorAddressInputs : undefined },
+              { name: 'name', errors: errorNameInputs.length ? errorNameInputs : undefined }
+            ]);
           } else {
             onComplete();
           }
         })
         .catch((error: Error) => {
-          form.setFields([{ name: fieldName, errors: [error.message] }]);
+          form.setFields([{ name: 'name', errors: [error.message] }]);
         })
         .finally(() => {
           setLoading(false);
@@ -175,7 +215,7 @@ const Component: React.FC<Props> = ({ className }: Props) => {
           </div>
           <Form
             form={form}
-            initialValues={{ address: '' }}
+            initialValues={{ address: '', name: '' }}
             name={formName}
             onFieldsChange={onFieldsChange}
             onFinish={onSubmit}
@@ -197,6 +237,30 @@ const Component: React.FC<Props> = ({ className }: Props) => {
                 id={modalId}
                 placeholder={t('Please type or paste account address')}
                 showScanner={true}
+              />
+            </Form.Item>
+
+            <Form.Item
+              className={CN('__account-name-field')}
+              hidden={isHideAccountNameInput}
+              name={'name'}
+              rules={[{
+                message: t('Account name is required'),
+                transform: (value: string) => value.trim(),
+                required: true
+              },
+                {
+                  validator: accountNameValidator
+                }
+
+              ]}
+              statusHelpAsTooltip={true}
+            >
+              <Input
+                className='__account-name-input'
+                disabled={loading}
+                label={t('Account name')}
+                placeholder={t('Enter the account name')}
               />
             </Form.Item>
           </Form>
