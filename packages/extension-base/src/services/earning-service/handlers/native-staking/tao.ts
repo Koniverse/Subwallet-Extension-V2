@@ -18,6 +18,7 @@ import { calculateReward } from '../../utils';
 interface TaoStakingStakeOption {
   owner: string,
   amount: string,
+  identity: string
 }
 
 interface Hotkey {
@@ -75,7 +76,6 @@ export const bittensorApiKey = (): string => {
 /* Fetch data */
 
 export async function fetchDelegates (): Promise<ValidatorResponse> {
-  console.log('Bittensor', [BITTENSOR_API_KEY_7, BITTENSOR_API_KEY_8, BITTENSOR_API_KEY_9, BITTENSOR_API_KEY_10]);
   const apiKey = bittensorApiKey();
 
   return new Promise(function (resolve) {
@@ -225,7 +225,8 @@ export default class TaoNativeStakingPoolHandler extends BaseParaStakingPoolHand
           chain: chainInfo.slug,
           validatorAddress: delegate.owner,
           activeStake: activeStake,
-          validatorMinStake: minDelegatorStake
+          validatorMinStake: minDelegatorStake,
+          validatorIdentity: delegate.identity
         });
       }
     }
@@ -263,7 +264,8 @@ export default class TaoNativeStakingPoolHandler extends BaseParaStakingPoolHand
 
         delegatorState.push({
           owner: testnetAddress,
-          amount: bnStakeAmount.toString()
+          amount: bnStakeAmount.toString(),
+          identity: testnetAddress
         });
 
         rsCallback({
@@ -307,8 +309,9 @@ export default class TaoNativeStakingPoolHandler extends BaseParaStakingPoolHand
             bnTotalBalance = bnTotalBalance.add(new BN(delegate.stake));
 
             delegatorState.push({
-              owner: name,
-              amount: delegate.stake
+              owner: delegate.hotkey.ss58,
+              amount: delegate.stake,
+              identity: name
             });
           }
 
