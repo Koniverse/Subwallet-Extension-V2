@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { AccountProxyType } from '@subwallet/extension-base/types';
-import { AddressSelectorItem, CloseIcon } from '@subwallet/extension-web-ui/components';
+import { AddressSelectorItem, BaseModal, CloseIcon } from '@subwallet/extension-web-ui/components';
 import GeneralEmptyList from '@subwallet/extension-web-ui/components/EmptyList/GeneralEmptyList';
 import Search from '@subwallet/extension-web-ui/components/Search';
 import { useTranslation } from '@subwallet/extension-web-ui/hooks';
 import { AccountAddressItemType, ThemeProps } from '@subwallet/extension-web-ui/types';
-import { Icon, ModalContext, SwList, SwModal } from '@subwallet/react-ui';
+import { Icon, ModalContext, SwList } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { CaretLeft } from 'phosphor-react';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
@@ -171,7 +171,7 @@ function Component ({ className = '', items, modalId, onBack, onCancel, onSelect
   }, [isActive]);
 
   return (
-    <SwModal
+    <BaseModal
       className={CN(className)}
       closeIcon={
         onBack
@@ -207,7 +207,7 @@ function Component ({ className = '', items, modalId, onBack, onCancel, onSelect
         renderItem={renderItem}
         renderWhenEmpty={renderEmpty}
       />
-    </SwModal>
+    </BaseModal>
   );
 }
 

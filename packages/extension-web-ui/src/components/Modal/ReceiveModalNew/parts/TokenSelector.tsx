@@ -3,13 +3,13 @@
 
 import { _ChainAsset } from '@subwallet/chain-list/types';
 import { _getChainName } from '@subwallet/extension-base/services/chain-service/utils';
-import { TokenSelectorItem } from '@subwallet/extension-web-ui/components';
+import { BaseModal, TokenSelectorItem } from '@subwallet/extension-web-ui/components';
 import TokenEmptyList from '@subwallet/extension-web-ui/components/EmptyList/TokenEmptyList';
 import Search from '@subwallet/extension-web-ui/components/Search';
 import { RECEIVE_MODAL_TOKEN_SELECTOR } from '@subwallet/extension-web-ui/constants';
 import { useSelector, useTranslation } from '@subwallet/extension-web-ui/hooks';
 import { ThemeProps } from '@subwallet/extension-web-ui/types';
-import { ModalContext, SwList, SwModal } from '@subwallet/react-ui';
+import { ModalContext, SwList } from '@subwallet/react-ui';
 import { SwListSectionRef } from '@subwallet/react-ui/es/sw-list';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -98,7 +98,7 @@ function Component ({ className = '', items, onCancel, onSelectItem }: Props): R
   }, [onCancel]);
 
   return (
-    <SwModal
+    <BaseModal
       className={`${className}`}
       destroyOnClose={true}
       id={modalId}
@@ -111,6 +111,7 @@ function Component ({ className = '', items, onCancel, onSelectItem }: Props): R
         onSearch={handleSearch}
         placeholder={t<string>('Enter token name or network name')}
         searchValue={currentSearchText}
+        simpleLayout={true}
       />
       <SwList
         className={'__list-container'}
@@ -119,7 +120,7 @@ function Component ({ className = '', items, onCancel, onSelectItem }: Props): R
         renderWhenEmpty={renderEmpty}
         searchableMinCharactersCount={2}
       />
-    </SwModal>
+    </BaseModal>
   );
 }
 
