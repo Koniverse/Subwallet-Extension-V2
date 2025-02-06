@@ -20,6 +20,7 @@ import subwalletApiSdk from '@subwallet/subwallet-api-sdk';
 import { BehaviorSubject } from 'rxjs';
 
 import { SimpleSwapHandler } from './handler/simpleswap-handler';
+import { UniswapHandler } from './handler/uniswap-handler';
 
 export const _isChainSupportedByProvider = (providerSlug: SwapProviderId, chain: string) => {
   const supportedChains = _PROVIDER_TO_SUPPORTED_PAIR_MAP[providerSlug];
@@ -184,7 +185,9 @@ export class SwapService implements ServiceWithProcessInterface, StoppableServic
         case SwapProviderId.SIMPLE_SWAP:
           this.handlers[providerId] = new SimpleSwapHandler(this.chainService, this.state.balanceService);
           break;
-
+        case SwapProviderId.UNISWAP:
+          this.handlers[providerId] = new UniswapHandler(this.chainService, this.state.balanceService, this.state.requestService);
+          break;
         default:
           throw new Error('Unsupported provider');
       }
