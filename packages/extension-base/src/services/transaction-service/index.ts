@@ -1125,6 +1125,20 @@ export default class TransactionService {
     // const registry = extrinsic.registry;
     // const signedExtensions = registry.signedExtensions;
 
+    const assetId = {
+      parents: 0,
+      interior: {
+        X2: [
+          {
+            palletInstance: 50
+          },
+          {
+            generalIndex: 1984
+          }
+        ]
+      }
+    };
+
     const signerOption: Partial<SignerOptions> = {
       signer: {
         signPayload: async (payload: SignerPayloadJSON) => {
@@ -1138,7 +1152,8 @@ export default class TransactionService {
         }
       } as Signer,
       tip,
-      withSignedTransaction: true
+      withSignedTransaction: true,
+      assetId
     };
 
     // if (_isRuntimeUpdated(signedExtensions)) {
