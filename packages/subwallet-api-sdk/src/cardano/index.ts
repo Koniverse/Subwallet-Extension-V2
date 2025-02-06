@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { BuildCardanoTxParams, getFirstNumberAfterSubstring, POPULAR_CARDANO_ERROR_PHRASE, toUnit } from '@subwallet/subwallet-api-sdk/cardano/utils';
-import { SWApiResponse, SWApiResponseError, SWApiResponseSuccess } from '@subwallet/subwallet-api-sdk/types';
+import { SWApiResponse } from '@subwallet/subwallet-api-sdk/types';
 
 export async function fetchUnsignedPayload (baseUrl: string, params: BuildCardanoTxParams) {
   const searchParams = new URLSearchParams({
@@ -27,13 +27,11 @@ export async function fetchUnsignedPayload (baseUrl: string, params: BuildCardan
 
     const response = await rawResponse.json() as SWApiResponse<string>;
 
-    if (response.status === 'error') {
-      const error = (response as SWApiResponseError).error;
-
-      throw new Error(error.message);
+    if (response.error && response.status === 'error') {
+      throw new Error(response.error.message);
     }
 
-    return (response as SWApiResponseSuccess<string>).data;
+    return response.data;
   } catch (error) {
     const errorMessage = (error as Error).message;
 

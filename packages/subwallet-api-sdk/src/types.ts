@@ -3,17 +3,11 @@
 
 export type ApiStatusValue = 'error' | 'success' | 'fail';
 
-export interface SWApiResponseSuccess<T> {
+export interface SWApiResponse<T> {
   status: ApiStatusValue,
-  data: T
-}
-
-export interface SWApiResponseError {
-  status: ApiStatusValue;
-  error: {
+  data: T,
+  error?: {
     message: string;
     code: number;
-  },
+  }
 }
-
-export type SWApiResponse<T> = SWApiResponseSuccess<T> | SWApiResponseError
