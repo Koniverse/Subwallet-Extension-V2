@@ -1,6 +1,7 @@
 // Copyright 2019-2022 @polkadot/extension-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+export { default as DeriveAccountActionModal } from './DeriveAccountActionModal';
 export { default as ReceiveModal } from './ReceiveModalNew';
 export { default as RequestCameraAccessModal } from './RequestCameraAccessModal';
 export { default as RequestCreatePasswordModal } from './RequestCreatePasswordModal';

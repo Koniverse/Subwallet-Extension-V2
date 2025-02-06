@@ -1,13 +1,14 @@
 // Copyright 2019-2022 @polkadot/extension-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { AddressQrModal, AlertModal, AttachAccountModal, CreateAccountModal, DeriveAccountModal, ImportAccountModal, ImportSeedModal, NewSeedModal, RequestCameraAccessModal, RequestCreatePasswordModal, SelectExtensionModal } from '@subwallet/extension-web-ui/components';
+import { AddressQrModal, AlertModal, AttachAccountModal, CreateAccountModal, DeriveAccountActionModal, DeriveAccountModal, ImportAccountModal, ImportSeedModal, NewSeedModal, RequestCameraAccessModal, RequestCreatePasswordModal, SelectExtensionModal } from '@subwallet/extension-web-ui/components';
+import SeedPhraseModal from '@subwallet/extension-web-ui/components/Modal/Account/SeedPhraseModal';
 import { ConfirmationModal } from '@subwallet/extension-web-ui/components/Modal/ConfirmationModal';
 import { CustomizeModal } from '@subwallet/extension-web-ui/components/Modal/Customize/CustomizeModal';
 import { AddressQrModalProps } from '@subwallet/extension-web-ui/components/Modal/Global/AddressQrModal';
 import { ADDRESS_QR_MODAL, BUY_TOKEN_MODAL, CONFIRMATION_MODAL, CREATE_ACCOUNT_MODAL, DERIVE_ACCOUNT_ACTION_MODAL, EARNING_INSTRUCTION_MODAL, GLOBAL_ALERT_MODAL, SEED_PHRASE_MODAL, TRANSACTION_TRANSFER_MODAL, TRANSACTION_YIELD_CANCEL_UNSTAKE_MODAL, TRANSACTION_YIELD_CLAIM_MODAL, TRANSACTION_YIELD_FAST_WITHDRAW_MODAL, TRANSACTION_YIELD_UNSTAKE_MODAL, TRANSACTION_YIELD_WITHDRAW_MODAL } from '@subwallet/extension-web-ui/constants';
 import { DEFAULT_ROUTER_PATH } from '@subwallet/extension-web-ui/constants/router';
-import { useAlert } from '@subwallet/extension-web-ui/hooks';
+import { useAlert, useGetConfig, useSetSessionLatest, useSwitchModal } from '@subwallet/extension-web-ui/hooks';
 import { RootState } from '@subwallet/extension-web-ui/stores';
 import { AlertDialogProps } from '@subwallet/extension-web-ui/types';
 import { noop } from '@subwallet/extension-web-ui/utils';
@@ -16,9 +17,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import { useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import SeedPhraseModal from '../components/Modal/Account/SeedPhraseModal';
 import { UnlockModal } from '../components/Modal/UnlockModal';
-import useSwitchModal from '../hooks/modal/useSwitchModal';
 
 interface Props {
   children: React.ReactNode;
@@ -109,6 +108,8 @@ export const WalletModalContextProvider = ({ children }: Props) => {
   const { activeModal, checkActive, hasActiveModal, inactiveAll, inactiveModal, inactiveModals } = useContext(ModalContext);
   const [searchParams, setSearchParams] = useSearchParams();
   const { hasMasterPassword, isLocked } = useSelector((state: RootState) => state.accountState);
+  const { getConfig } = useGetConfig();
+  const { onHandleSessionLatest, setTimeBackUp } = useSetSessionLatest();
   const { alertProps, closeAlert, openAlert } = useAlert(alertModalId);
 
   useExcludeModal(CONFIRMATION_MODAL);
@@ -200,6 +201,14 @@ export const WalletModalContextProvider = ({ children }: Props) => {
     }
   }, [activeModal, inactiveModals, searchParams]);
 
+  useEffect(() => {
+    getConfig().then(setTimeBackUp).catch(console.error);
+  }, [getConfig, setTimeBackUp]);
+
+  useEffect(() => {
+    onHandleSessionLatest();
+  }, [onHandleSessionLatest]);
+
   return <WalletModalContext.Provider value={contextValue}>
     <div
       id='popup-container'
@@ -245,13 +254,13 @@ export const WalletModalContextProvider = ({ children }: Props) => {
       )
     }
 
-    {/* { */}
-    {/*  !!deriveActionModalProps && ( */}
-    {/*    <DeriveAccountActionModal */}
-    {/*      {...deriveActionModalProps} */}
-    {/*    /> */}
-    {/*  ) */}
-    {/* } */}
+    {
+      !!deriveActionModalProps && (
+        <DeriveAccountActionModal
+          {...deriveActionModalProps}
+        />
+      )
+    }
 
   </WalletModalContext.Provider>;
 };
