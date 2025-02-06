@@ -5,12 +5,6 @@
 import { fetchUnsignedPayload } from '@subwallet/subwallet-api-sdk/cardano';
 import { BuildCardanoTxParams } from '@subwallet/subwallet-api-sdk/cardano/utils';
 
-export interface SubWalletResponse<T> {
-  statusCode: number, // todo: better to use a flag status than status code
-  result: T,
-  message: string
-}
-
 export class SubWalletApiSdk {
   private baseUrl = '';
   private static _instance: SubWalletApiSdk | undefined = undefined;
@@ -20,7 +14,7 @@ export class SubWalletApiSdk {
   }
 
   async fetchUnsignedPayload (params: BuildCardanoTxParams): Promise<string> {
-    const url = `${this.baseUrl}/build-cardano-tx?`;
+    const url = `${this.baseUrl}/cardano/build-cardano-tx?`;
 
     return fetchUnsignedPayload(url, params);
   }
