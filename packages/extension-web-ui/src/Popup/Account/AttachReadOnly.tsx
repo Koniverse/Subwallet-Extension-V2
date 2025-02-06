@@ -7,7 +7,6 @@ import CloseIcon from '@subwallet/extension-web-ui/components/Icon/CloseIcon';
 import { ATTACH_ACCOUNT_MODAL } from '@subwallet/extension-web-ui/constants/modal';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
 import useCompleteCreateAccount from '@subwallet/extension-web-ui/hooks/account/useCompleteCreateAccount';
-import useGetDefaultAccountName from '@subwallet/extension-web-ui/hooks/account/useGetDefaultAccountName';
 import useGoBackFromCreateAccount from '@subwallet/extension-web-ui/hooks/account/useGoBackFromCreateAccount';
 import useFocusById from '@subwallet/extension-web-ui/hooks/form/useFocusById';
 import useAutoNavigateToCreatePassword from '@subwallet/extension-web-ui/hooks/router/useAutoNavigateToCreatePassword';
@@ -53,7 +52,6 @@ const Component: React.FC<Props> = ({ className }: Props) => {
   const { goHome } = useDefaultNavigate();
 
   const onComplete = useCompleteCreateAccount();
-  const accountName = useGetDefaultAccountName();
 
   const accounts = useSelector((root: RootState) => root.accountState.accounts);
 
@@ -64,7 +62,6 @@ const Component: React.FC<Props> = ({ className }: Props) => {
   const [reformatAddress, setReformatAddress] = useState('');
   const [isHideAccountNameInput, setIsHideAccountNameInput] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isEthereum, setIsEthereum] = useState(false);
   const [isDisable, setIsDisable] = useState(true);
   const { isWebUI } = useContext(ScreenContext);
 
@@ -73,7 +70,6 @@ const Component: React.FC<Props> = ({ className }: Props) => {
 
     if (result) {
       setReformatAddress(result.content);
-      setIsEthereum(result.isEthereum);
     }
   }, []);
 
@@ -176,7 +172,7 @@ const Component: React.FC<Props> = ({ className }: Props) => {
     } else {
       setLoading(false);
     }
-  }, [form, reformatAddress, accountName, isEthereum, onComplete]);
+  }, [form, reformatAddress, onComplete]);
 
   useFocusById(modalId);
 
