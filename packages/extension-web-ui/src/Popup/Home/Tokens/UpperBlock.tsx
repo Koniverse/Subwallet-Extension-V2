@@ -164,8 +164,9 @@ function Component (
           size={isShrink ? 'xs' : 'sm'}
           tooltip={t('Send tokens')}
         />
-        <div className={'__button-space'} />
+        <div className={'__button-space hidden'} />
         <Button
+          className={CN({ hidden: true })} // not support swap on mobile yet
           disabled={!isSupportSwap}
           icon={(
             <Icon
