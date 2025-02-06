@@ -1,16 +1,15 @@
 // Copyright 2019-2022 @subwallet/extension-web-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { EVM_ACCOUNT_TYPE, SUBSTRATE_ACCOUNT_TYPE } from '@subwallet/extension-web-ui/constants/account';
+import { EVM_ACCOUNT_TYPE, SUBSTRATE_ACCOUNT_TYPE, TON_ACCOUNT_TYPE } from '@subwallet/extension-web-ui/constants/account';
 import useTranslation from '@subwallet/extension-web-ui/hooks/common/useTranslation';
 import { ThemeProps } from '@subwallet/extension-web-ui/types';
+import { KeypairType } from '@subwallet/keyring/types';
 import { Icon, Logo, SettingItem } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { CheckCircle } from 'phosphor-react';
 import React, { useCallback, useMemo } from 'react';
 import styled from 'styled-components';
-
-import { KeypairType } from '@polkadot/util-crypto/types';
 
 interface SelectAccountTypeProps extends ThemeProps {
   selectedItems: KeypairType[];
@@ -62,6 +61,12 @@ const Component: React.FC<SelectAccountTypeProps> = (props: SelectAccountTypePro
       key: EVM_ACCOUNT_TYPE,
       label: t('Ethereum'),
       onClick: onClickItem(EVM_ACCOUNT_TYPE)
+    },
+    {
+      icon: 'ton',
+      key: TON_ACCOUNT_TYPE,
+      label: t('Ton'),
+      onClick: onClickItem(TON_ACCOUNT_TYPE)
     }
   ]), [t, onClickItem]);
 
