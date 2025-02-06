@@ -1127,9 +1127,11 @@ export default class TransactionService {
       assetId: {
         parents: 1,
         interior: {
-          X1: 3369
+          X1: [{
+            Parachain: 3369
+          }]
         }
-      },
+      }
       // todo: also test with this
       // tip: ...
     };
