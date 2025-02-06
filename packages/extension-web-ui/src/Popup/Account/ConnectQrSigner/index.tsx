@@ -1,6 +1,7 @@
 // Copyright 2019-2022 @subwallet/extension-web-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { AccountProxyType } from '@subwallet/extension-base/types';
 import { detectTranslate, isSameAddress } from '@subwallet/extension-base/utils';
 import { AccountNameModal, Layout, PageWrapper } from '@subwallet/extension-web-ui/components';
 import CloseIcon from '@subwallet/extension-web-ui/components/Icon/CloseIcon';
@@ -8,12 +9,14 @@ import DualLogo from '@subwallet/extension-web-ui/components/Logo/DualLogo';
 import QrScannerErrorNotice from '@subwallet/extension-web-ui/components/Qr/Scanner/ErrorNotice';
 import { ACCOUNT_NAME_MODAL, ATTACH_ACCOUNT_MODAL } from '@subwallet/extension-web-ui/constants/modal';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
+import { useSelector } from '@subwallet/extension-web-ui/hooks';
 import useCompleteCreateAccount from '@subwallet/extension-web-ui/hooks/account/useCompleteCreateAccount';
 import useGoBackFromCreateAccount from '@subwallet/extension-web-ui/hooks/account/useGoBackFromCreateAccount';
 import useScanAccountQr from '@subwallet/extension-web-ui/hooks/qr/useScanAccountQr';
 import useAutoNavigateToCreatePassword from '@subwallet/extension-web-ui/hooks/router/useAutoNavigateToCreatePassword';
 import useDefaultNavigate from '@subwallet/extension-web-ui/hooks/router/useDefaultNavigate';
 import { createAccountExternalV2 } from '@subwallet/extension-web-ui/messaging';
+import { RootState } from '@subwallet/extension-web-ui/stores';
 import { ThemeProps, ValidateState } from '@subwallet/extension-web-ui/types';
 import { QrAccount } from '@subwallet/extension-web-ui/types/scanner';
 import { qrSignerScan } from '@subwallet/extension-web-ui/utils/scanner/attach';
@@ -25,9 +28,6 @@ import { Trans, useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
 import DefaultLogosMap from '../../../assets/logo';
-import { useSelector } from '@subwallet/extension-web-ui/hooks';
-import { RootState } from '@subwallet/extension-web-ui/stores';
-import { AccountProxyType } from '@subwallet/extension-base/types';
 
 const FooterIcon = (
   <Icon
@@ -90,11 +90,11 @@ const Component: React.FC<Props> = (props: Props) => {
       .then(() => {
         setScannedAccount(account);
       }).catch((error: Error) => {
-      setValidateState({
-        message: error.message,
-        status: 'error'
+        setValidateState({
+          message: error.message,
+          status: 'error'
+        });
       });
-    });
   }, [accountAddressValidator, inactiveModal]);
 
   const onSubmitFinal = useCallback((name: string) => {
@@ -141,6 +141,7 @@ const Component: React.FC<Props> = (props: Props) => {
   }, [scannedAccount, activeModal]);
 
   const { onClose, onError, onSuccess, openCamera } = useScanAccountQr(modalId, qrSignerScan, setValidateState, onSubmit);
+
   return (
     <PageWrapper className={CN(className)}>
       <Layout.WithSubHeaderOnly

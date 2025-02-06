@@ -1,6 +1,8 @@
 // Copyright 2019-2022 @subwallet/extension-web-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { AccountExternalErrorCode } from '@subwallet/extension-base/background/KoniTypes';
+import { isSameAddress } from '@subwallet/extension-base/utils';
 import { Layout, PageWrapper } from '@subwallet/extension-web-ui/components';
 import { AddressInput } from '@subwallet/extension-web-ui/components/Field/AddressInput';
 import CloseIcon from '@subwallet/extension-web-ui/components/Icon/CloseIcon';
@@ -24,8 +26,6 @@ import React, { useCallback, useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import styled from 'styled-components';
-import { AccountExternalErrorCode } from '@subwallet/extension-base/background/KoniTypes';
-import { isSameAddress } from '@subwallet/extension-base/utils';
 
 type Props = ThemeProps;
 

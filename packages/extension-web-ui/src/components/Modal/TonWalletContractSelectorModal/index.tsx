@@ -5,7 +5,7 @@ import type { ButtonProps } from '@subwallet/react-ui/es/button/button';
 import type { IconProps } from 'phosphor-react';
 
 import { AccountActions, AccountProxyType, ResponseGetAllTonWalletContractVersion } from '@subwallet/extension-base/types';
-import { GeneralEmptyList } from '@subwallet/extension-web-ui/components';
+import { BaseModal, GeneralEmptyList } from '@subwallet/extension-web-ui/components';
 import { TON_WALLET_CONTRACT_SELECTOR_MODAL } from '@subwallet/extension-web-ui/constants/modal';
 import { useFetchChainInfo, useGetAccountByAddress, useNotification, useSelector } from '@subwallet/extension-web-ui/hooks';
 import useTranslation from '@subwallet/extension-web-ui/hooks/common/useTranslation';
@@ -13,7 +13,7 @@ import { tonAccountChangeWalletContractVersion, tonGetAllWalletContractVersion }
 import { RootState } from '@subwallet/extension-web-ui/stores';
 import { ThemeProps } from '@subwallet/extension-web-ui/types';
 import { TonWalletContractVersion } from '@subwallet/keyring/types';
-import { Button, Icon, SwList, SwModal, Tooltip } from '@subwallet/react-ui';
+import { Button, Icon, SwList, Tooltip } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { CaretLeft, CheckCircle, FadersHorizontal } from 'phosphor-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -149,7 +149,7 @@ const Component: React.FC<Props> = ({ address, chainSlug, className, closeIcon =
   }, [accountInfo?.address, accountInfo?.proxyId, accountProxies, location.pathname, navigate, notification, onCancel, selectedContractVersion]);
 
   return (
-    <SwModal
+    <BaseModal
       className={CN(className, 'wallet-version-modal')}
       closable={isShowBackButton}
       closeIcon={
@@ -201,7 +201,7 @@ const Component: React.FC<Props> = ({ address, chainSlug, className, closeIcon =
           rowGap='var(--row-gap)'
         />
       </div>
-    </SwModal>
+    </BaseModal>
   );
 };
 

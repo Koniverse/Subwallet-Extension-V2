@@ -9,7 +9,7 @@ module.exports = {
     ...base.ignorePatterns,
     "i18next-scanner.config.js",
     "koni-*.mjs",
-    "packages/extension-web-ui/**/*", // Remove after migration to web-ui
+    // "packages/extension-web-ui/**/*", // Remove after migration to web-ui
     // "*.spec.ts"
   ],
   parserOptions: {

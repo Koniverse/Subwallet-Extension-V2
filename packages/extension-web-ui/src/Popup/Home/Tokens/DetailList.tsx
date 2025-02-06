@@ -1,55 +1,38 @@
 // Copyright 2019-2022 @polkadot/extension-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import {AccountChainType, AccountProxy, AccountProxyType, BuyTokenInfo} from '@subwallet/extension-base/types';
-import { TokenBalance, TokenItem } from '@subwallet/extension-web-ui/components';
+import { _getAssetOriginChain } from '@subwallet/extension-base/services/chain-service/utils';
+import { TON_CHAINS } from '@subwallet/extension-base/services/earning-service/constants';
+import { AccountChainType, AccountProxy, AccountProxyType, BuyTokenInfo } from '@subwallet/extension-base/types';
+import { detectTranslate } from '@subwallet/extension-base/utils';
+import { AccountSelectorModal, AlertBox, CloseIcon, ReceiveModal, TokenBalance, TokenItem, TonWalletContractSelectorModal } from '@subwallet/extension-web-ui/components';
 import PageWrapper from '@subwallet/extension-web-ui/components/Layout/PageWrapper';
-import { AccountSelectorModal } from '@subwallet/extension-web-ui/components';
 import NoContent, { PAGE_TYPE } from '@subwallet/extension-web-ui/components/NoContent';
 import { TokenBalanceDetailItem } from '@subwallet/extension-web-ui/components/TokenItem/TokenBalanceDetailItem';
-import { DEFAULT_TRANSFER_PARAMS, SHOW_BANNER_TOKEN_GROUPS, TRANSFER_TRANSACTION } from '@subwallet/extension-web-ui/constants';
+import { DEFAULT_SWAP_PARAMS, DEFAULT_TRANSFER_PARAMS, IS_SHOW_TON_CONTRACT_VERSION_WARNING, SHOW_BANNER_TOKEN_GROUPS, SWAP_TRANSACTION, TON_ACCOUNT_SELECTOR_MODAL, TON_WALLET_CONTRACT_SELECTOR_MODAL, TRANSFER_TRANSACTION } from '@subwallet/extension-web-ui/constants';
 import { DataContext } from '@subwallet/extension-web-ui/contexts/DataContext';
 import { HomeContext } from '@subwallet/extension-web-ui/contexts/screen/HomeContext';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
-import { useDefaultNavigate, useNavigateOnChangeAccount, useNotification, useSelector } from '@subwallet/extension-web-ui/hooks';
+import { useCoreReceiveModalHelper, useDefaultNavigate, useGetChainSlugsByAccount, useNavigateOnChangeAccount, useNotification, useSelector } from '@subwallet/extension-web-ui/hooks';
 import Banner from '@subwallet/extension-web-ui/Popup/Home/Tokens/Banner';
 import { DetailModal } from '@subwallet/extension-web-ui/Popup/Home/Tokens/DetailModal';
 import { DetailUpperBlock } from '@subwallet/extension-web-ui/Popup/Home/Tokens/DetailUpperBlock';
 import { RootState } from '@subwallet/extension-web-ui/stores';
-import { EarningPoolsParam, ThemeProps } from '@subwallet/extension-web-ui/types';
+import { AccountAddressItemType, EarningPoolsParam, ThemeProps } from '@subwallet/extension-web-ui/types';
 import { TokenBalanceItemType } from '@subwallet/extension-web-ui/types/balance';
-import { isAccountAll, sortTokenByValue } from '@subwallet/extension-web-ui/utils';
+import { getTransactionFromAccountProxyValue, isAccountAll, sortTokenByValue } from '@subwallet/extension-web-ui/utils';
+import { isTonAddress } from '@subwallet/keyring';
+import { KeypairType } from '@subwallet/keyring/types';
 import { ModalContext } from '@subwallet/react-ui';
 import { SwNumberProps } from '@subwallet/react-ui/es/number';
 import CN from 'classnames';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import {Trans, useTranslation} from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useLocalStorage } from 'usehooks-ts';
 
 import DetailTable from './DetailTable';
-import {
-  DEFAULT_SWAP_PARAMS,
-  IS_SHOW_TON_CONTRACT_VERSION_WARNING, SWAP_TRANSACTION,
-  TON_ACCOUNT_SELECTOR_MODAL,
-  TON_WALLET_CONTRACT_SELECTOR_MODAL
-} from '@subwallet/extension-web-ui/constants';
-import {useCoreReceiveModalHelper, useGetChainSlugsByAccount} from '@subwallet/extension-web-ui/hooks';
-import {isTonAddress} from '@subwallet/keyring';
-import {AccountAddressItemType} from '@subwallet/extension-web-ui/types';
-import {KeypairType} from '@subwallet/keyring/types';
-import {_getAssetOriginChain} from '@subwallet/extension-base/services/chain-service/utils';
-import {TON_CHAINS} from '@subwallet/extension-base/services/earning-service/constants';
-import {getTransactionFromAccountProxyValue} from '@subwallet/extension-web-ui/utils';
-import {
-  AlertBox,
-  CloseIcon,
-  ReceiveModal,
-  TonWalletContractSelectorModal
-} from '@subwallet/extension-web-ui/components';
-import classNames from 'classnames';
-import {detectTranslate} from '@subwallet/extension-base/utils';
 
 type Props = ThemeProps;
 
@@ -366,29 +349,29 @@ function Component (): React.ReactElement {
   }, []);
 
   const onOpenSendFund = useCallback(() => {
-      if (!currentAccountProxy) {
-        return;
-      }
+    if (!currentAccountProxy) {
+      return;
+    }
 
-      if (currentAccountProxy.accountType === AccountProxyType.READ_ONLY) {
-        notify({
-          message: t('The account you are using is watch-only, you cannot send assets with it'),
-          type: 'info',
-          duration: 3
-        });
-
-        return;
-      }
-
-      setStorage({
-        ...DEFAULT_TRANSFER_PARAMS,
-        fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy),
-        defaultSlug: tokenGroupSlug || ''
+    if (currentAccountProxy.accountType === AccountProxyType.READ_ONLY) {
+      notify({
+        message: t('The account you are using is watch-only, you cannot send assets with it'),
+        type: 'info',
+        duration: 3
       });
 
-      navigate('/transaction/send-fund');
-    },
-    [currentAccountProxy, navigate, notify, setStorage, t, tokenGroupSlug]
+      return;
+    }
+
+    setStorage({
+      ...DEFAULT_TRANSFER_PARAMS,
+      fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy),
+      defaultSlug: tokenGroupSlug || ''
+    });
+
+    navigate('/transaction/send-fund');
+  },
+  [currentAccountProxy, navigate, notify, setStorage, t, tokenGroupSlug]
   );
 
   const onOpenBuyTokens = useCallback(() => {
@@ -665,7 +648,7 @@ function Component (): React.ReactElement {
         !isHaveOnlyTonSoloAcc && !isReadonlyAccount && isIncludesTonToken && isShowTonWarning && (
           <>
             <AlertBox
-              className={classNames('ton-solo-acc-alert-area')}
+              className={CN('ton-solo-acc-alert-area')}
               description={<Trans
                 components={{
                   highlight: (

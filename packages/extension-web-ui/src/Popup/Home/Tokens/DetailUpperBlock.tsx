@@ -10,7 +10,7 @@ import { ThemeProps } from '@subwallet/extension-web-ui/types';
 import { Button, Icon, Number, Tooltip } from '@subwallet/react-ui';
 import { SwNumberProps } from '@subwallet/react-ui/es/number';
 import CN from 'classnames';
-import {ArrowsLeftRight, CaretLeft, CopySimple, PaperPlaneTilt, ShoppingCartSimple} from 'phosphor-react';
+import { ArrowsLeftRight, CaretLeft, CopySimple, PaperPlaneTilt, ShoppingCartSimple } from 'phosphor-react';
 import React, { useCallback, useContext } from 'react';
 import { useSelector } from 'react-redux';
 import styled from 'styled-components';
@@ -133,7 +133,7 @@ function Component (
             onClick={onOpenSwap}
             shape='squircle'
             size={isShrink ? 'xs' : 'sm'}
-            tooltip={isWebUI ? t('Swap')  : undefined}
+            tooltip={isWebUI ? t('Swap') : undefined}
           />
           <div className={CN('__button-space', { hidden: isShrink })} />
           <Button
