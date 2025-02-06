@@ -322,7 +322,7 @@ export const router = createBrowserRouter([
           ConnectPolkadotVault.generateRouterObject('connect-polkadot-vault'),
           ConnectKeystone.generateRouterObject('connect-keystone'),
           ConnectLedger.generateRouterObject('connect-ledger'),
-          AccountDetail.generateRouterObject('detail/:accountAddress'),
+          AccountDetail.generateRouterObject('detail/:accountProxyId'),
           AccountExport.generateRouterObject('export/:accountAddress'),
           ExportAllDone.generateRouterObject('export-all-done')
         ]
