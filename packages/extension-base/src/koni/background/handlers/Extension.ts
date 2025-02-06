@@ -44,7 +44,7 @@ import { AppBannerData, AppConfirmationData, AppPopupData } from '@subwallet/ext
 import { EXTENSION_REQUEST_URL } from '@subwallet/extension-base/services/request-service/constants';
 import { AuthUrls } from '@subwallet/extension-base/services/request-service/types';
 import { DEFAULT_AUTO_LOCK_TIME } from '@subwallet/extension-base/services/setting-service/constants';
-import { SWTransaction, SWTransactionResponse, SWTransactionResult, TransactionEmitter, ValidateTransactionResponseInput } from '@subwallet/extension-base/services/transaction-service/types';
+import { SWTransaction, SWTransactionInput, SWTransactionResponse, SWTransactionResult, TransactionEmitter, TransactionEventResponse, ValidateTransactionResponseInput } from '@subwallet/extension-base/services/transaction-service/types';
 import { isProposalExpired, isSupportWalletConnectChain, isSupportWalletConnectNamespace } from '@subwallet/extension-base/services/wallet-connect-service/helpers';
 import { ResultApproveWalletConnectSession, WalletConnectNotSupportRequest, WalletConnectSessionRequest } from '@subwallet/extension-base/services/wallet-connect-service/types';
 import { SWStorage } from '@subwallet/extension-base/storage';
@@ -55,6 +55,7 @@ import { RequestClaimBridge } from '@subwallet/extension-base/types/bridge';
 import { GetNotificationParams, RequestIsClaimedPolygonBridge, RequestSwitchStatusParams } from '@subwallet/extension-base/types/notification';
 import { CommonOptimalPath } from '@subwallet/extension-base/types/service-base';
 import { SwapPair, SwapQuoteResponse, SwapRequest, SwapRequestResult, SwapSubmitParams, ValidateSwapProcessParams } from '@subwallet/extension-base/types/swap';
+import { RequestSubmitMultiProcess } from '@subwallet/extension-base/types/transaction/process';
 import { _analyzeAddress, BN_ZERO, combineAllAccountProxy, createTransactionFromRLP, isSameAddress, MODULE_SUPPORT, reformatAddress, signatureToHex, toBNString, Transaction as QrTransaction, transformAccounts, transformAddresses, uniqueStringArray } from '@subwallet/extension-base/utils';
 import { parseContractInput, parseEvmRlp } from '@subwallet/extension-base/utils/eth/parseTransaction';
 import { MetadataDef } from '@subwallet/extension-inject/types';
@@ -3736,7 +3737,7 @@ export default class KoniExtension {
   }
 
   private async handleSwapStep (inputData: SwapSubmitParams): Promise<SWTransactionResponse> {
-    const { address, process, quote, recipient } = inputData;
+    const { address, isPassConfirmation, onSend, process, processId, quote, recipient } = inputData;
 
     if (!quote || !address || !process) {
       return this.#koniState.transactionService
@@ -3757,6 +3758,12 @@ export default class KoniExtension {
     // const chosenFeeToken = process.steps.findIndex((step) => step.type === SwapStepType.SET_FEE_TOKEN) > -1;
     // const allowSkipValidation = [ExtrinsicType.SET_FEE_TOKEN, ExtrinsicType.SWAP].includes(extrinsicType);
 
+    const eventsHandler = (eventEmitter: TransactionEmitter) => {
+      if (onSend) {
+        eventEmitter.on('send', onSend);
+      }
+    };
+
     return await this.#koniState.transactionService.handleTransaction({
       address,
       chain: txChain,
@@ -3766,7 +3773,11 @@ export default class KoniExtension {
       extrinsicType, // change this depends on step
       chainType,
       resolveOnDone: !isLastStep,
-      transferNativeAmount
+      transferNativeAmount,
+      ...this.createPassConfirmationParams(isPassConfirmation),
+      eventsHandler,
+
+      processId
       // skipFeeValidation: chosenFeeToken && allowSkipValidation
     });
   }
@@ -3897,6 +3908,126 @@ export default class KoniExtension {
   }
 
   /* Ledger */
+
+  /* Multi process */
+
+  private async handleMultiProcess (_request: RequestSubmitMultiProcess): Promise<SWTransactionResponse> {
+    const { request: requestData, type, id: processId } = _request;
+
+    switch (type) {
+      case 'earning':
+
+      // eslint-disable-next-line no-fallthrough
+      case 'swap': {
+        const currentStep = requestData.currentStep;
+
+        type SubmitFunction = (step: number, callback?: (rs: SWTransactionResponse) => void) => Promise<SWTransactionResponse>;
+
+        let stepNums: number;
+        let submitData: SubmitFunction;
+
+        if (type === 'earning') {
+          const data = requestData as RequestYieldStepSubmit;
+
+          submitData = async (step: number, callback?: (rs: SWTransactionResponse) => void): Promise<SWTransactionResponse> => {
+            return this.handleYieldStep({
+              ...data,
+              currentStep: step
+              // isPassConfirmation
+            });
+          };
+
+          stepNums = data.path.steps.length;
+        } else {
+          const data = requestData as SwapSubmitParams;
+
+          stepNums = data.process.steps.length;
+
+          submitData = async (step: number, callback?: (rs: SWTransactionResponse) => void): Promise<SWTransactionResponse> => {
+            const isLastStep = step === stepNums - 1;
+            const isPassConfirmation = !callback;
+
+            const onSend = callback
+              // eslint-disable-next-line node/no-callback-literal
+              ? (rs: TransactionEventResponse) => callback(rs as SWTransactionResponse)
+              : undefined;
+
+            if (stepNums > 2 && isLastStep) {
+              const quote = data.quote;
+              const latestSwapQuote = await this.getLatestSwapQuote({
+                address: data.address,
+                currentQuote: quote.provider,
+                feeToken: quote.feeInfo.selectedFeeToken,
+                recipient: data.recipient,
+                pair: quote.pair,
+                fromAmount: quote.fromAmount,
+                slippage: data.slippage
+              });
+
+              return this.handleSwapStep({
+                ...data,
+                quote: latestSwapQuote.optimalQuote || data.quote,
+                currentStep: step,
+                isPassConfirmation,
+                processId
+              });
+            }
+
+            return this.handleSwapStep({
+              ...data,
+              currentStep: step,
+              isPassConfirmation,
+              onSend,
+              processId
+            });
+          };
+        }
+
+        const loopSubmit = async (submitFunc: SubmitFunction, step: number, callback?: (rs: SWTransactionResponse) => void): Promise<SWTransactionResponse> => {
+          const isLastStep = step === stepNums - 1;
+
+          const rs = await submitFunc(step, callback);
+
+          if (isLastStep) {
+            return rs;
+          } else {
+            if (rs.errors.length || rs.warnings.length) {
+              return rs;
+            }
+
+            return loopSubmit(submitFunc, step + 1);
+          }
+        };
+
+        return new Promise<SWTransactionResponse>((resolve, reject) => {
+          loopSubmit(submitData, currentStep, resolve)
+            .then((rs) => {
+              if (!rs.errors.length && !rs.warnings.length) {
+                reject(rs.errors[0] || rs.warnings[0]);
+              }
+            })
+            .catch(reject);
+        });
+      }
+    }
+  }
+
+  private createPassConfirmationParams (pass = false): Pick<SWTransactionInput, 'isPassConfirmation' | 'signAfterCreate'> {
+    if (pass) {
+      return {
+        isPassConfirmation: true,
+        signAfterCreate: (id: string) => {
+          this.signingApprovePasswordV2({ id }).catch(console.log);
+        }
+      };
+    } else {
+      return {
+        isPassConfirmation: false
+      };
+    }
+  }
+
+  /* Multi process */
 
   // --------------------------------------------------------------
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -4508,6 +4639,11 @@ export default class KoniExtension {
       case 'pri(ledger.generic.allow)':
         return this.subscribeLedgerGenericAllowChains(id, port);
         /* Ledger */
+
+        /* Multi process */
+      case 'pri(transaction.multi.process)':
+        return this.handleMultiProcess(request as RequestSubmitMultiProcess);
+        /* Multi process */
       // Default
       default:
         throw new Error(`Unable to handle message of type ${type}`);

@@ -27,7 +27,10 @@ export interface SWTransaction extends ValidateTransactionResponse, Partial<Pick
   transaction: SubmittableExtrinsic | TransactionConfig | TonTransactionConfig;
   additionalValidator?: (inputTransaction: SWTransactionResponse) => Promise<void>;
   eventsHandler?: (eventEmitter: TransactionEmitter) => void;
-  isPassConfirmation?: boolean
+  isPassConfirmation?: boolean;
+  signAfterCreate?: (id: string) => void;
+  processId?: string;
+  combineInfo?: any;
 }
 
 export type SWTransactionResult = Omit<SWTransaction, 'transaction' | 'additionalValidator' | 'eventsHandler'>
@@ -35,19 +38,18 @@ export type SWTransactionResult = Omit<SWTransaction, 'transaction' | 'additiona
 type SwInputBase = Pick<SWTransaction, 'address' | 'url' | 'data' | 'extrinsicType' | 'chain' | 'chainType' | 'ignoreWarnings' | 'transferNativeAmount'>
 & Partial<Pick<SWTransaction, 'additionalValidator' | 'eventsHandler'>>;
 
-export interface SWTransactionInput extends SwInputBase, Partial<Pick<SWTransaction, 'estimateFee'>> {
+export interface SWTransactionInput extends SwInputBase, Partial<Pick<SWTransaction, 'estimateFee' | 'signAfterCreate' | 'combineInfo' | 'isPassConfirmation' | 'processId'>> {
   id?: string;
   transaction?: SWTransaction['transaction'] | null;
   warnings?: SWTransaction['warnings'];
   errors?: SWTransaction['errors'];
   edAsWarning?: boolean;
   isTransferAll?: boolean;
-  isPassConfirmation?: boolean
   resolveOnDone?: boolean;
   skipFeeValidation?: boolean;
 }
 
-export type SWTransactionResponse = SwInputBase & Pick<SWTransaction, 'warnings' | 'errors'> & Partial<Pick<SWTransaction, 'id' | 'extrinsicHash' | 'status' | 'estimateFee'>>;
+export type SWTransactionResponse = SwInputBase & Pick<SWTransaction, 'warnings' | 'errors'> & Partial<Pick<SWTransaction, 'id' | 'extrinsicHash' | 'status' | 'estimateFee' | 'combineInfo' | 'processId' | 'signAfterCreate'>>;
 
 export type ValidateTransactionResponseInput = SWTransactionInput;
 
