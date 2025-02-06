@@ -82,9 +82,6 @@ const Component: React.FC<Props> = ({ className }: Props) => {
   const [localKeyTypes, setLocalKeyTypes] = useState<KeypairType[]>(DEFAULT_ACCOUNT_TYPES);
   const keyTypes = isWebUI ? localKeyTypes : outerKeyTypes;
 
-  console.log('localKeyTypes', localKeyTypes);
-  console.log('outerKeyTypes', outerKeyTypes);
-  console.log('keyTypes', keyTypes);
   const [disabled, setDisabled] = useState(true);
   const [showSeed, setShowSeed] = useState(false);
   const checkUnlock = useUnlockChecker();
