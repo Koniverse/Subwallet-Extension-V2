@@ -323,7 +323,7 @@ export const router = createBrowserRouter([
           ConnectKeystone.generateRouterObject('connect-keystone'),
           ConnectLedger.generateRouterObject('connect-ledger'),
           AccountDetail.generateRouterObject('detail/:accountProxyId'),
-          AccountExport.generateRouterObject('export/:accountAddress'),
+          AccountExport.generateRouterObject('export/:accountProxyId'),
           ExportAllDone.generateRouterObject('export-all-done')
         ]
       },

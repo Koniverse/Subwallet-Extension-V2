@@ -5,14 +5,17 @@ import { NotificationType } from '@subwallet/extension-base/background/KoniTypes
 import { AccountActions, AccountProxy, AccountProxyType } from '@subwallet/extension-base/types';
 import { AccountProxyTypeTag, CloseIcon, Layout, PageWrapper } from '@subwallet/extension-web-ui/components';
 import { FilterTabItemType, FilterTabs } from '@subwallet/extension-web-ui/components/FilterTabs';
+import { ACCOUNT_EXPORT_MODAL } from '@subwallet/extension-web-ui/constants';
+import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
 import { WalletModalContext } from '@subwallet/extension-web-ui/contexts/WalletModalContextProvider';
 import { useDefaultNavigate, useGetAccountProxyById, useNotification } from '@subwallet/extension-web-ui/hooks';
 import { editAccount, forgetAccount, validateAccountName } from '@subwallet/extension-web-ui/messaging';
+import AccountExport from '@subwallet/extension-web-ui/Popup/Account/AccountExport';
 import { RootState } from '@subwallet/extension-web-ui/stores';
 import { AccountDetailParam, ThemeProps, VoidFunction } from '@subwallet/extension-web-ui/types';
 import { FormCallbacks, FormFieldData } from '@subwallet/extension-web-ui/types/form';
 import { convertFieldToObject } from '@subwallet/extension-web-ui/utils/form/form';
-import { Button, Form, Icon, Input } from '@subwallet/react-ui';
+import { Button, Form, Icon, Input, ModalContext } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { CircleNotch, Export, FloppyDiskBack, GitMerge, Trash } from 'phosphor-react';
 import { RuleObject } from 'rc-field-form/lib/interface';
@@ -57,6 +60,10 @@ interface DetailFormState {
 }
 
 const Component: React.FC<ComponentProps> = ({ accountProxy, onBack, requestViewDerivedAccountDetails, requestViewDerivedAccounts }: ComponentProps) => {
+  const { activeModal } = useContext(ModalContext);
+  const [exportAccountKey, setExportAccountKey] = useState<string>('exportAccountKey');
+  const { isWebUI } = useContext(ScreenContext);
+
   const showDerivedAccounts = !!accountProxy.children?.length;
 
   const { t } = useTranslation();
@@ -168,10 +175,14 @@ const Component: React.FC<ComponentProps> = ({ accountProxy, onBack, requestView
   }, [accountProxy, openDeriveModal]);
 
   const onExport = useCallback(() => {
-    if (accountProxy?.id) {
-      navigate(`/accounts/export/${accountProxy.id}`);
+    if (accountProxy.id) {
+      if (isWebUI) {
+        activeModal(ACCOUNT_EXPORT_MODAL);
+      } else {
+        navigate(`/accounts/export/${accountProxy.id}`);
+      }
     }
-  }, [accountProxy?.id, navigate]);
+  }, [accountProxy.id, activeModal, isWebUI, navigate]);
 
   // @ts-ignore
   const onCopyAddress = useCallback(() => {
@@ -321,6 +332,10 @@ const Component: React.FC<ComponentProps> = ({ accountProxy, onBack, requestView
     </>;
   }, [accountProxy, deleting, deriving, onDelete, onDerive, onExport, t]);
 
+  const onCancelExportAccount = useCallback(() => {
+    setExportAccountKey(`exportAccountKey-${Date.now()}`);
+  }, []);
+
   useEffect(() => {
     if (accountProxy) {
       form.setFieldValue(FormFieldName.NAME, accountProxy.name);
@@ -465,6 +480,14 @@ const Component: React.FC<ComponentProps> = ({ accountProxy, onBack, requestView
           renderDetailDerivedAccount()
         )
       }
+      {isWebUI && (
+        <AccountExport
+          accountProxyId={accountProxy.id}
+          isModalMode={true}
+          key={exportAccountKey}
+          onCancelModal={onCancelExportAccount}
+        />
+      )}
     </Layout.WithSubHeaderOnly>
   );
 };
