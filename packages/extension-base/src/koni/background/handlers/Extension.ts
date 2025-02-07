@@ -1393,7 +1393,8 @@ export default class KoniExtension {
           value: value || '0',
           cardanoTtlOffset: DEFAULT_CARDANO_TTL_OFFSET,
           transferAll: !!transferAll,
-          cardanoApi
+          cardanoApi,
+          nativeTokenInfo
         });
       } else {
         const substrateApi = this.#koniState.getSubstrateApi(networkKey);

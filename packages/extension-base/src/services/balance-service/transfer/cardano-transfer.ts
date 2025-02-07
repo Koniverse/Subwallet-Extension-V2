@@ -10,6 +10,7 @@ import { subwalletApiSdk } from '@subwallet/subwallet-api-sdk';
 
 export interface CardanoTransactionConfigProps {
   tokenInfo: _ChainAsset;
+  nativeTokenInfo: _ChainAsset;
   from: string,
   to: string,
   networkKey: string,
@@ -43,7 +44,7 @@ export async function createCardanoTransaction (params: CardanoTransactionConfig
 
   const payload = await subwalletApiSdk.fetchUnsignedPayload({
     tokenDecimals: params.tokenInfo.decimals || 0,
-    tokenSymbol: params.tokenInfo.symbol,
+    nativeTokenSymbol: params.nativeTokenInfo.symbol,
     cardanoId,
     from: params.from,
     to: params.to,

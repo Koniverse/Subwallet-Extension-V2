@@ -3,7 +3,7 @@
 
 export interface BuildCardanoTxParams {
   tokenDecimals: number;
-  tokenSymbol: string;
+  nativeTokenSymbol: string;
   cardanoId: string;
   from: string;
   to: string;
