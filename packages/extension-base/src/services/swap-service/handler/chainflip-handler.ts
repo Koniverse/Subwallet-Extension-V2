@@ -10,7 +10,7 @@ import { createTransferExtrinsic } from '@subwallet/extension-base/services/bala
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
 import { _getAssetSymbol, _getContractAddressOfToken, _isChainSubstrateCompatible, _isNativeToken } from '@subwallet/extension-base/services/chain-service/utils';
 import { SwapBaseHandler, SwapBaseInterface } from '@subwallet/extension-base/services/swap-service/handler/base-handler';
-import { CHAIN_FLIP_SUPPORTED_MAINNET_ASSET_MAPPING, CHAIN_FLIP_SUPPORTED_MAINNET_MAPPING, CHAIN_FLIP_SUPPORTED_TESTNET_ASSET_MAPPING, CHAIN_FLIP_SUPPORTED_TESTNET_MAPPING, getChainflipSwap } from '@subwallet/extension-base/services/swap-service/utils';
+import { getChainflipSwap } from '@subwallet/extension-base/services/swap-service/utils';
 import { BasicTxErrorType, TransactionData } from '@subwallet/extension-base/types';
 import { BaseStepDetail, CommonOptimalPath, CommonStepFeeInfo, CommonStepType } from '@subwallet/extension-base/types/service-base';
 import { ChainflipSwapTxData, OptimalSwapPathParams, SwapProviderId, SwapStepType, SwapSubmitParams, SwapSubmitStepData, ValidateSwapProcessParams } from '@subwallet/extension-base/types/swap';
@@ -72,22 +72,6 @@ export class ChainflipSwapHandler implements SwapBaseInterface {
 
   get slug () {
     return this.swapBaseHandler.slug;
-  }
-
-  get assetMapping () {
-    if (this.isTestnet) {
-      return CHAIN_FLIP_SUPPORTED_TESTNET_ASSET_MAPPING;
-    } else {
-      return CHAIN_FLIP_SUPPORTED_MAINNET_ASSET_MAPPING;
-    }
-  }
-
-  get chainMapping () {
-    if (this.isTestnet) {
-      return CHAIN_FLIP_SUPPORTED_TESTNET_MAPPING;
-    } else {
-      return CHAIN_FLIP_SUPPORTED_MAINNET_MAPPING;
-    }
   }
 
   get intermediaryAssetSlug () {
