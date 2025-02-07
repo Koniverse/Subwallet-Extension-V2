@@ -845,6 +845,7 @@ const Component = ({ className }: ComponentProps) => {
     if (redirectFromPreview && !accountAddressItems.length && checkValidAccountLoading) {
       const isChainEvm = chainInfoMap[poolChain] && _isChainEvmCompatible(chainInfoMap[poolChain]);
 
+      // todo: Recheck what this logic do after updating unified account feature
       setSelectedAccountTypes([isChainEvm ? EVM_ACCOUNT_TYPE : SUBSTRATE_ACCOUNT_TYPE]);
       navigate('/home/earning', { state: { view: 'position', redirectFromPreview: true, chainName: chainInfoMap[poolChain]?.name || '' } });
     } else {

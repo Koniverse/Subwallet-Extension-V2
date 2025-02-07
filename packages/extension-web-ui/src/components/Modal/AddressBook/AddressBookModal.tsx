@@ -246,16 +246,14 @@ const Component: React.FC<Props> = (props: Props) => {
               />
             </Badge>
           )}
-          displayRow={true}
           enableSearchInput={true}
-          groupBy='group'
+          groupBy='analyzedGroup'
           groupSeparator={groupSeparator}
           list={items}
           onClickActionBtn={openFilter}
           ref={sectionRef}
           renderItem={renderItem}
           renderWhenEmpty={renderEmpty}
-          rowGap='var(--row-gap)'
           searchFunction={searchFunction}
           searchMinCharactersCount={2}
           searchPlaceholder={t<string>('Account name')}
@@ -278,8 +276,6 @@ const Component: React.FC<Props> = (props: Props) => {
 
 const AddressBookModal = styled(Component)<Props>(({ theme: { token } }: Props) => {
   return {
-    '--row-gap': `${token.sizeXS}px`,
-
     '.ant-sw-modal-body': {
       display: 'flex',
       paddingLeft: 0,
@@ -288,6 +284,14 @@ const AddressBookModal = styled(Component)<Props>(({ theme: { token } }: Props) 
 
     '.ant-sw-list-section': {
       flex: 1
+    },
+
+    '.ant-sw-list': {
+      paddingBottom: 0
+    },
+
+    '.___list-separator + .__list-item, .__list-item + .__list-item, .__list-item + .___list-separator': {
+      marginTop: token.marginXS
     },
 
     '.address-book-group-separator': {
