@@ -93,7 +93,7 @@ function Component ({ onApprove, onCompleteMigrationProcess, sessionId, soloAcco
           <ProcessViewItem
             currentProcessOrdinal={currentProcessOrdinal}
             currentSoloAccountToBeMigratedGroup={currentSoloAccountToBeMigratedGroup}
-            key={`ProcessViewItem-${currentProcessOrdinal}`}
+            key={`ProcessViewItem-${currentToBeMigratedGroupIndex}`}
             onApprove={_onApprove}
             onSkip={onSkip}
             totalProcessSteps={totalProcessSteps}

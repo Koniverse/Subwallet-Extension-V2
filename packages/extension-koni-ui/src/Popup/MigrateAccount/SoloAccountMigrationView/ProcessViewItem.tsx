@@ -8,11 +8,11 @@ import { useTranslation } from '@subwallet/extension-koni-ui/hooks';
 import { validateAccountName } from '@subwallet/extension-koni-ui/messaging';
 import { SoloAccountToBeMigratedItem } from '@subwallet/extension-koni-ui/Popup/MigrateAccount/SoloAccountMigrationView/SoloAccountToBeMigratedItem';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
-import { noop } from '@subwallet/extension-koni-ui/utils';
+import { noop, simpleCheckForm } from '@subwallet/extension-koni-ui/utils';
 import { Button, Form, Icon, Input } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { CheckCircle, XCircle } from 'phosphor-react';
-import { RuleObject } from 'rc-field-form/lib/interface';
+import { Callbacks, FieldData, RuleObject } from 'rc-field-form/lib/interface';
 import React, { useCallback, useMemo, useState } from 'react';
 import styled from 'styled-components';
 
@@ -35,7 +35,7 @@ function Component ({ className = '', currentProcessOrdinal, currentSoloAccountT
   const defaultValues = useMemo(() => ({
     name: ''
   }), []);
-  const nameValue = Form.useWatch('name', form);
+  const [isFormValid, setIsFormValid] = useState<boolean>(false);
 
   const headerContent = useMemo(() => {
     return `${t('Accounts migrated')}: ${currentProcessOrdinal}/${totalProcessSteps}`;
@@ -47,7 +47,7 @@ function Component ({ className = '', currentProcessOrdinal, currentSoloAccountT
 
       const { name } = form.getFieldsValue();
 
-      onApprove(currentSoloAccountToBeMigratedGroup, name)
+      onApprove(currentSoloAccountToBeMigratedGroup, name.trim())
         .catch(console.error)
         .finally(() => {
           setLoading(false);
@@ -75,9 +75,11 @@ function Component ({ className = '', currentProcessOrdinal, currentSoloAccountT
     return Promise.resolve();
   }, [t]);
 
-  const canSubmit = (() => {
-    return !!nameValue?.trim();
-  })();
+  const onFieldsChange: Callbacks<FormProps>['onFieldsChange'] = useCallback((changes: FieldData[], allFields: FieldData[]) => {
+    const { empty, error } = simpleCheckForm(allFields);
+
+    setIsFormValid(!(error || empty));
+  }, []);
 
   return (
     <div className={className}>
@@ -114,6 +116,7 @@ function Component ({ className = '', currentProcessOrdinal, currentSoloAccountT
           form={form}
           initialValues={defaultValues}
           name='__form-container'
+          onFieldsChange={onFieldsChange}
         >
           <div className='__account-name-field-wrapper'>
             <div className='__account-type-tag-wrapper'>
@@ -172,7 +175,7 @@ function Component ({ className = '', currentProcessOrdinal, currentSoloAccountT
         </Button>
         <Button
           block={true}
-          disabled={!canSubmit || loading}
+          disabled={!isFormValid || loading}
           icon={(
             <Icon
               phosphorIcon={CheckCircle}
