@@ -41,6 +41,7 @@ export async function createCardanoTransaction (params: CardanoTransactionConfig
 
   const payload = await subwalletApiSdk.fetchUnsignedPayload({
     tokenDecimals: params.tokenInfo.decimals || 0,
+    tokenSymbol: params.tokenInfo.symbol,
     cardanoId,
     from: params.from,
     to: params.to,
