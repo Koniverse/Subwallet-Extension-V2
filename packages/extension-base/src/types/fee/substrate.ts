@@ -6,6 +6,7 @@ import { FeeDefaultOption } from './option';
 
 export interface SubstrateTipInfo {
   tip: string;
+  tokenPayFeeSlug?: string;
 }
 
 export interface SubstrateFeeInfo extends BaseFeeInfo {

@@ -1113,6 +1113,9 @@ export default class TransactionService {
 
   private signAndSendSubstrateTransaction ({ address, chain, feeCustom, id, transaction, url }: SWTransaction): TransactionEmitter {
     const tip = (feeCustom as SubstrateTipInfo)?.tip || '0';
+    const feeAssetSlug = (feeCustom as SubstrateTipInfo)?.tokenPayFeeSlug;
+    const feeAssetId = feeAssetSlug ? this.state.chainService.getAssetBySlug(feeAssetSlug).metadata?.multilocation as Record<string, any> : undefined;
+
     const emitter = new EventEmitter<TransactionEventMap>();
     const eventData: TransactionEventResponse = {
       id,
@@ -1124,20 +1127,6 @@ export default class TransactionService {
     const extrinsic = transaction as SubmittableExtrinsic;
     // const registry = extrinsic.registry;
     // const signedExtensions = registry.signedExtensions;
-
-    const assetId = {
-      parents: 0,
-      interior: {
-        X2: [
-          {
-            palletInstance: 50
-          },
-          {
-            generalIndex: 1984
-          }
-        ]
-      }
-    };
 
     const signerOption: Partial<SignerOptions> = {
       signer: {
@@ -1153,7 +1142,7 @@ export default class TransactionService {
       } as Signer,
       tip,
       withSignedTransaction: true,
-      assetId
+      assetId: feeAssetId
     };
 
     // if (_isRuntimeUpdated(signedExtensions)) {
