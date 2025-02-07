@@ -3,7 +3,7 @@
 
 import { NotificationType } from '@subwallet/extension-base/background/KoniTypes';
 import { AccountActions, AccountProxy, AccountProxyType } from '@subwallet/extension-base/types';
-import { AccountProxyTypeTag, CloseIcon, Layout, PageWrapper } from '@subwallet/extension-web-ui/components';
+import { AccountProxyTypeTag, CloseIcon, InstructionContainer, InstructionContentType, Layout, PageWrapper } from '@subwallet/extension-web-ui/components';
 import { FilterTabItemType, FilterTabs } from '@subwallet/extension-web-ui/components/FilterTabs';
 import { ACCOUNT_EXPORT_MODAL } from '@subwallet/extension-web-ui/constants';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
@@ -58,6 +58,19 @@ enum ActionType {
 interface DetailFormState {
   [FormFieldName.NAME]: string;
 }
+
+const instructionContents: InstructionContentType[] = [
+  {
+    title: 'Why do I need to enter a password?',
+    description: 'For your wallet protection, SubWallet locks your wallet after 15 minutes of inactivity. You will need this password to unlock it.',
+    type: 'warning'
+  },
+  {
+    title: 'Can I recover a password?',
+    description: 'The password is stored securely on your device. We will not be able to recover it for you, so make sure you remember it!',
+    type: 'warning'
+  }
+];
 
 const Component: React.FC<ComponentProps> = ({ accountProxy, onBack, requestViewDerivedAccountDetails, requestViewDerivedAccounts }: ComponentProps) => {
   const { activeModal } = useContext(ModalContext);
@@ -394,92 +407,107 @@ const Component: React.FC<ComponentProps> = ({ accountProxy, onBack, requestView
     <Layout.WithSubHeaderOnly
       disableBack={false}
       footer={footerNode}
-      subHeaderIcons={[
-        {
-          icon: <CloseIcon />,
-          onClick: onBack,
-          disabled: false
-        }
-      ]}
+      subHeaderIcons={(
+        isWebUI
+          ? undefined
+          : [
+            {
+              icon: <CloseIcon />,
+              onClick: onBack,
+              disabled: false
+            }
+          ]
+      )}
       title={t('Account details')}
     >
-      <Form
-        className={'account-detail-form'}
-        form={form}
-        initialValues={{
-          [FormFieldName.NAME]: accountProxy.name || ''
-        }}
-        name='account-detail-form'
-        onFieldsChange={onUpdate}
-        onFinish={onSubmit}
-      >
-        <div className='account-field-wrapper'>
-          <div className='account-type-tag-wrapper'>
-            <AccountProxyTypeTag
-              className={'account-type-tag'}
-              type={accountProxy.accountType}
-            />
-          </div>
-          <Form.Item
-            className={CN('account-field')}
-            name={FormFieldName.NAME}
-            rules={[
-              {
-                message: t('Account name is required'),
-                transform: (value: string) => value.trim(),
-                required: true
-              },
-              {
-                validator: accountNameValidator
-              }
-            ]}
-            statusHelpAsTooltip={true}
+      <div className='body-container'>
+        <div className='main-content-area'>
+          <Form
+            className={'account-detail-form'}
+            form={form}
+            initialValues={{
+              [FormFieldName.NAME]: accountProxy.name || ''
+            }}
+            name='account-detail-form'
+            onFieldsChange={onUpdate}
+            onFinish={onSubmit}
           >
-            <Input
-              className='account-name-input'
-              disabled={false}
-              label={t('Account name')}
-              onBlur={form.submit}
-              placeholder={t('Account name')}
-              suffix={(
-                <Icon
-                  className={CN({ loading: saving })}
-                  phosphorIcon={saving ? CircleNotch : FloppyDiskBack}
-                  size='sm'
+            <div className='account-field-wrapper'>
+              <div className='account-type-tag-wrapper'>
+                <AccountProxyTypeTag
+                  className={'account-type-tag'}
+                  type={accountProxy.accountType}
                 />
-              )}
-            />
-          </Form.Item>
-        </div>
-      </Form>
+              </div>
+              <Form.Item
+                className={CN('account-field')}
+                name={FormFieldName.NAME}
+                rules={[
+                  {
+                    message: t('Account name is required'),
+                    transform: (value: string) => value.trim(),
+                    required: true
+                  },
+                  {
+                    validator: accountNameValidator
+                  }
+                ]}
+                statusHelpAsTooltip={true}
+              >
+                <Input
+                  className='account-name-input'
+                  disabled={false}
+                  label={t('Account name')}
+                  onBlur={form.submit}
+                  placeholder={t('Account name')}
+                  suffix={(
+                    <Icon
+                      className={CN({ loading: saving })}
+                      phosphorIcon={saving ? CircleNotch : FloppyDiskBack}
+                      size='sm'
+                    />
+                  )}
+                />
+              </Form.Item>
+            </div>
+          </Form>
 
-      <FilterTabs
-        className={'filter-tabs-container'}
-        items={filterTabItems}
-        onSelect={onSelectFilterTab}
-        selectedItem={selectedFilterTab}
-      />
-      {
-        selectedFilterTab === FilterTabType.ACCOUNT_ADDRESS && (
-          <AccountAddressList
-            accountProxy={accountProxy}
-            className={'list-container'}
+          <FilterTabs
+            className={'filter-tabs-container'}
+            items={filterTabItems}
+            onSelect={onSelectFilterTab}
+            selectedItem={selectedFilterTab}
           />
-        )
-      }
-      {
-        selectedFilterTab === FilterTabType.DERIVED_ACCOUNT && (
-          <DerivedAccountList
-            accountProxy={accountProxy}
-            className={'list-container'}
-          />
-        )
-      }
-      {
-        selectedFilterTab === FilterTabType.DERIVATION_INFO && (
-          renderDetailDerivedAccount()
-        )
-      }
+          {
+            selectedFilterTab === FilterTabType.ACCOUNT_ADDRESS && (
+              <AccountAddressList
+                accountProxy={accountProxy}
+                className={'list-container'}
+              />
+            )
+          }
+          {
+            selectedFilterTab === FilterTabType.DERIVED_ACCOUNT && (
+              <DerivedAccountList
+                accountProxy={accountProxy}
+                className={'list-container'}
+              />
+            )
+          }
+          {
+            selectedFilterTab === FilterTabType.DERIVATION_INFO && (
+              renderDetailDerivedAccount()
+            )
+          }
+        </div>
+
+        {isWebUI &&
+        <InstructionContainer
+          className='instruction-area'
+          contents={instructionContents}
+        />
+        }
+      </div>
       {isWebUI && (
         <AccountExport
           accountProxyId={accountProxy.id}
@@ -524,17 +552,28 @@ const Wrapper = ({ className }: Props) => {
   );
 };
 
-const AccountDetail = styled(Wrapper)<Props>(({ theme: { token } }: Props) => {
+const AccountDetail = styled(Wrapper)<Props>(({ theme: { extendToken, token } }: Props) => {
   return {
     '.ant-sw-screen-layout-body': {
+      display: 'flex',
+      overflow: 'hidden'
+    },
+
+    '.body-container': {
+      flexGrow: 1
+    },
+
+    '.main-content-area': {
       display: 'flex',
       overflow: 'hidden',
       flexDirection: 'column'
     },
+
     '.derivation-wrapper': {
       paddingLeft: token.padding,
       paddingRight: token.padding
     },
+
     '.derivation-info-form.derivation-info-form': {
       paddingTop: 0
     },
@@ -603,6 +642,58 @@ const AccountDetail = styled(Wrapper)<Props>(({ theme: { token } }: Props) => {
         lineHeight: '20px',
         fontSize: '11px',
         textTransform: 'uppercase'
+      }
+    },
+
+    '.web-ui-enable &': {
+      '.ant-sw-sub-header-container': {
+        marginBottom: 24
+      },
+
+      '.body-container': {
+        display: 'flex',
+        flexGrow: 0,
+        width: extendToken.twoColumnWidth,
+        maxWidth: '100%',
+        margin: '0 auto',
+        overflow: 'hidden',
+
+        '& > *': {
+          flex: 1
+        },
+
+        '.instruction-area': {
+          paddingRight: token.padding
+        },
+
+        '.form-container': {
+          '.ant-btn': {
+            width: '100%'
+          }
+        }
+      },
+
+      '.ant-sw-screen-layout-footer': {
+        paddingTop: 0
+      },
+
+      '.ant-sw-screen-layout-footer-content': {
+        maxWidth: extendToken.twoColumnWidth,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        position: 'relative',
+        paddingTop: 26
+      },
+
+      '.ant-sw-screen-layout-footer-content:before': {
+        content: '""',
+        height: 2,
+        backgroundColor: token.colorBgDivider,
+        display: 'block',
+        position: 'absolute',
+        left: token.size,
+        right: token.size,
+        top: 0
       }
     }
   };

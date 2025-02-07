@@ -3,15 +3,17 @@
 
 import { NotificationType } from '@subwallet/extension-base/background/KoniTypes';
 import { AccountProxyExtra } from '@subwallet/extension-base/types';
-import { AlertBox, CloseIcon, Layout, PageWrapper } from '@subwallet/extension-web-ui/components';
+import { AlertBox, CloseIcon, InstructionContainer, InstructionContentType, Layout, PageWrapper } from '@subwallet/extension-web-ui/components';
 import { IMPORT_ACCOUNT_MODAL, USER_GUIDE_URL } from '@subwallet/extension-web-ui/constants';
+import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
 import { WalletModalContext } from '@subwallet/extension-web-ui/contexts/WalletModalContextProvider';
 import { useAutoNavigateToCreatePassword, useCompleteCreateAccount, useDefaultNavigate, useGoBackFromCreateAccount, useTranslation, useUnlockChecker } from '@subwallet/extension-web-ui/hooks';
 import { batchRestoreV2, jsonRestoreV2, parseBatchSingleJson, parseInfoSingleJson } from '@subwallet/extension-web-ui/messaging';
+import AccountRestoreJsonItem from '@subwallet/extension-web-ui/Popup/Account/RestoreJson/AccountRestoreJsonItem';
 import { ThemeProps, ValidateState } from '@subwallet/extension-web-ui/types';
 import { isKeyringPairs$Json, isValidJsonFile } from '@subwallet/extension-web-ui/utils';
 import { KeyringPair$Json } from '@subwallet/keyring/types';
-import { Form, Icon, Input, SwList, Upload } from '@subwallet/react-ui';
+import { Button, Form, Icon, Input, SwList, Upload } from '@subwallet/react-ui';
 import { UploadChangeParam, UploadFile } from '@subwallet/react-ui/es/upload/interface';
 import { KeyringPairs$Json } from '@subwallet/ui-keyring/types';
 import CN from 'classnames';
@@ -21,8 +23,6 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { u8aToString } from '@polkadot/util';
-
-import AccountRestoreJsonItem from './AccountRestoreJsonItem';
 
 type Props = ThemeProps;
 type ListItemGroupLabel = {
@@ -95,6 +95,25 @@ const getDuplicateAccountNames = (accounts: AccountProxyExtra_[], accountsSelect
   return duplicates;
 };
 
+const instructionContent: InstructionContentType[] = [
+  {
+    title: 'What is a JSON?',
+    description: "The JSON backup file stores your account's information encrypted with the account's password. It's a second recovery method additionally to the mnemonic phrase. "
+  },
+  {
+    title: 'How to export your JSON backup file',
+    description: (
+      <span>
+        When you create your account directly on Polkadot-JS UI the JSON file is automatically downloaded to your Downloads folder.
+        <br />
+        If you create your account in the Polkadot extension, you need to manually export the JSON file.
+        <br />
+        In <a href='#'>this article</a> you will learn how to manually export your JSON backup file in the Polkadot extension and Polkadot-JS UI.
+      </span>
+    )
+  }
+];
+
 const Component: React.FC<Props> = ({ className }: Props) => {
   useAutoNavigateToCreatePassword();
 
@@ -122,6 +141,7 @@ const Component: React.FC<Props> = ({ className }: Props) => {
 
   const [accountProxies, setAccountProxies] = useState<AccountProxyExtra_[]>([]);
   const [accountProxiesSelected, setAccountProxiesSelected] = useState<string[]>([]);
+  const { isWebUI } = useContext(ScreenContext);
 
   const disableSubmit = useMemo<boolean>(() => {
     if (stepState === StepState.SELECT_ACCOUNT_IMPORT && accountProxiesSelected.length === 0) {
@@ -470,17 +490,19 @@ const Component: React.FC<Props> = ({ className }: Props) => {
     }
   }, [accountProxies.length]);
 
+  const submitButtonProps = {
+    children: footerContent,
+    icon: FooterIcon,
+    onClick: form.submit,
+    disabled: disableSubmit,
+    loading: fileValidating || passwordValidating || submitting
+  };
+
   return (
     <PageWrapper className={CN(className)}>
       <Layout.WithSubHeaderOnly
         onBack={onBack_}
-        rightFooterButton={{
-          children: footerContent,
-          icon: FooterIcon,
-          onClick: form.submit,
-          disabled: disableSubmit,
-          loading: fileValidating || passwordValidating || submitting
-        }}
+        rightFooterButton={isWebUI ? undefined : submitButtonProps}
         subHeaderIcons={[
           {
             icon: <CloseIcon />,
@@ -489,30 +511,33 @@ const Component: React.FC<Props> = ({ className }: Props) => {
         ]}
         title={titlePage}
       >
-        <div className={CN('container')}>
-          <div className='description'>
-            {stepState === StepState.SELECT_ACCOUNT_IMPORT && passwordValidateState.status === 'success'
-              ? t('Select the account(s) you\'d like to import')
-              : t('Drag and drop the JSON file you exported from Polkadot.{js}')}
-          </div>
+        <div className='layout-container'>
+          <div className={CN('import-area')}>
+            <div className='description'>
+              {stepState === StepState.SELECT_ACCOUNT_IMPORT && passwordValidateState.status === 'success'
+                ? t('Select the account(s) you\'d like to import')
+                : t('Drag and drop the JSON file you exported from Polkadot.{js}')}
+            </div>
 
-          {
-            stepState === StepState.SELECT_ACCOUNT_IMPORT && showNoValidAccountAlert && <AlertBox
-              className={'waning-alert-box'}
-              description={t('All accounts found in this file already exist in SubWallet')}
-              title={t('Unable to import')}
-              type='warning'
-            />
-          }
+            {
+              stepState === StepState.SELECT_ACCOUNT_IMPORT && showNoValidAccountAlert && (
+                <AlertBox
+                  className={'waning-alert-box'}
+                  description={t('All accounts found in this file already exist in SubWallet')}
+                  title={t('Unable to import')}
+                  type='warning'
+                />
+              )
+            }
 
-          <Form
-            className='form-container'
-            form={form}
-            name={formName}
-            onFinish={onSubmit}
-            onKeyDown={handleKeyDown}
-          >
-            { stepState === StepState.UPLOAD_JSON_FILE &&
+            <Form
+              className='form-container'
+              form={form}
+              name={formName}
+              onFinish={onSubmit}
+              onKeyDown={handleKeyDown}
+            >
+              { stepState === StepState.UPLOAD_JSON_FILE &&
 
               <Form.Item
                 validateStatus={fileValidateState.status}
@@ -527,51 +552,66 @@ const Component: React.FC<Props> = ({ className }: Props) => {
                   title={t('Import by JSON file')}
                 />
               </Form.Item>
-            }
+              }
 
+              {
+                stepState === StepState.UPLOAD_JSON_FILE && requirePassword && (
+                  <Form.Item
+                    validateStatus={passwordValidateState.status}
+                  >
+                    <div className='input-label'>
+                      {t('Please enter the password you have used when creating your Polkadot.{js} account')}
+                    </div>
+                    <Input.Password
+                      id={`${formName}_${passwordField}`}
+                      onChange={onChangePassword}
+                      placeholder={t('Password')}
+                      statusHelp={passwordValidateState.message}
+                      type='password'
+                      value={password}
+                    />
+                  </Form.Item>
+                )
+              }
+            </Form>
             {
-              stepState === StepState.UPLOAD_JSON_FILE && requirePassword && (
-                <Form.Item
-                  validateStatus={passwordValidateState.status}
-                >
-                  <div className='input-label'>
-                    {t('Please enter the password you have used when creating your Polkadot.{js} account')}
-                  </div>
-                  <Input.Password
-                    id={`${formName}_${passwordField}`}
-                    onChange={onChangePassword}
-                    placeholder={t('Password')}
-                    statusHelp={passwordValidateState.message}
-                    type='password'
-                    value={password}
-                  />
-                </Form.Item>
+              stepState === StepState.SELECT_ACCOUNT_IMPORT && passwordValidateState.status === 'success' && (
+                <SwList.Section
+                  className='list-container'
+                  displayRow={true}
+                  hasMoreItems={true}
+                  list={listItem}
+                  renderItem={renderItem}
+                  rowGap='var(--list-gap)'
+                />
               )
             }
-          </Form>
-          {
-            stepState === StepState.SELECT_ACCOUNT_IMPORT && passwordValidateState.status === 'success' && (
-              <SwList.Section
-                className='list-container'
-                displayRow={true}
-                hasMoreItems={true}
-                list={listItem}
-                renderItem={renderItem}
-                rowGap='var(--list-gap)'
+
+            {isWebUI && (
+              <Button
+                {...submitButtonProps}
+                className='submit-button'
               />
-            )
-          }
+            )}
+          </div>
+
+          {isWebUI && (
+            <InstructionContainer
+              className={'instruction-area'}
+              contents={instructionContent}
+            />
+          )}
         </div>
       </Layout.WithSubHeaderOnly>
     </PageWrapper>
   );
 };
 
-const ImportJson = styled(Component)<Props>(({ theme: { token } }: Props) => {
+const ImportJson = styled(Component)<Props>(({ theme: { extendToken, token } }: Props) => {
   return {
     '--row-gap': `${token.sizeXS}px`,
 
-    '.container': {
+    '.import-area': {
       padding: token.padding,
       paddingBottom: 0,
       overflow: 'hidden',
@@ -658,6 +698,41 @@ const ImportJson = styled(Component)<Props>(({ theme: { token } }: Props) => {
     '.file-selector': {
       '.ant-upload-drag-single': {
         height: 168
+      }
+    },
+
+    '.web-ui-enable &': {
+      '.layout-container': {
+        display: 'flex',
+        flexGrow: 0,
+        width: extendToken.twoColumnWidth,
+        maxWidth: '100%',
+        margin: '0 auto',
+        overflow: 'hidden',
+
+        '& > div': {
+          flex: 1
+        },
+
+        '.import-area': {
+          paddingBottom: token.padding
+        },
+
+        '.instruction-area': {
+          paddingRight: token.padding
+        },
+
+        '.ant-sw-list-wrapper': {
+          flexBasis: 'auto'
+        },
+
+        '.submit-button': {
+          marginTop: token.margin
+        }
+      },
+
+      '.ant-sw-screen-layout-footer': {
+        paddingTop: 0
       }
     }
   };
