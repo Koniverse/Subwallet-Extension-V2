@@ -4,7 +4,7 @@
 import * as csl from '@emurgo/cardano-serialization-lib-nodejs';
 import { _AssetType, _ChainAsset } from '@subwallet/chain-list/types';
 import { CardanoTxJson, CardanoTxOutput } from '@subwallet/extension-base/services/balance-service/helpers/subscribe/cardano/types';
-import { CardanoAssetMetadata, estimateCardanoTxFee, splitCardanoId } from '@subwallet/extension-base/services/balance-service/helpers/subscribe/cardano/utils';
+import { CardanoAssetMetadata, getAdaBelongUtxo, getCardanoTxFee, splitCardanoId } from '@subwallet/extension-base/services/balance-service/helpers/subscribe/cardano/utils';
 import { _CardanoApi } from '@subwallet/extension-base/services/chain-service/types';
 import { subwalletApiSdk } from '@subwallet/subwallet-api-sdk';
 
@@ -31,9 +31,11 @@ export interface CardanoTransactionConfig {
 }
 
 export async function createCardanoTransaction (params: CardanoTransactionConfigProps): Promise<[CardanoTransactionConfig | null, string]> {
-  const { cardanoTtlOffset, from, networkKey, to, transferAll, value } = params;
+  const { cardanoTtlOffset, from, networkKey, to, tokenInfo, transferAll, value } = params;
 
-  const cardanoId = params.tokenInfo.metadata?.cardanoId;
+  const cardanoId = tokenInfo.metadata?.cardanoId;
+  const isNativeTransfer = tokenInfo.assetType === _AssetType.NATIVE;
+  const isSelfTransfer = from === to;
 
   if (!cardanoId) {
     throw new Error('Missing token policy id metadata');
@@ -53,7 +55,8 @@ export async function createCardanoTransaction (params: CardanoTransactionConfig
 
   validatePayload(payload, params);
 
-  const fee = estimateCardanoTxFee(payload);
+  const fee = getCardanoTxFee(payload);
+  const adaBelongToCnaUtxo = isNativeTransfer || isSelfTransfer ? BigInt(0) : getAdaBelongUtxo(payload, to);
 
   const tx: CardanoTransactionConfig = {
     from,
@@ -62,7 +65,7 @@ export async function createCardanoTransaction (params: CardanoTransactionConfig
     value,
     transferAll,
     cardanoTtlOffset,
-    estimateCardanoFee: fee,
+    estimateCardanoFee: (fee + adaBelongToCnaUtxo).toString(),
     cardanoPayload: payload
   };
 
