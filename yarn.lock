@@ -6858,7 +6858,7 @@ __metadata:
 
 "@subwallet/keyring@file:../SubWallet-Base/packages/keyring/build/::locator=root-workspace-0b6124%40workspace%3A.":
   version: 0.1.7
-  resolution: "@subwallet/keyring@file:../SubWallet-Base/packages/keyring/build/#../SubWallet-Base/packages/keyring/build/::hash=c7414c&locator=root-workspace-0b6124%40workspace%3A."
+  resolution: "@subwallet/keyring@file:../SubWallet-Base/packages/keyring/build/#../SubWallet-Base/packages/keyring/build/::hash=92482e&locator=root-workspace-0b6124%40workspace%3A."
   dependencies:
     "@emurgo/cardano-serialization-lib-nodejs": ^13.2.0
     "@ethereumjs/tx": ^5.0.0
@@ -6879,7 +6879,7 @@ __metadata:
     rxjs: ^7.5.6
     tiny-secp256k1: ^2.2.3
     tslib: ^2.6.2
-  checksum: 72e31f30f41062ef7861e3ad59920f214d403608e8908e97acff711740def705eefaace3fe004580d03dd53f45035a5d3d972390b73444b11765d16d51afc8f4
+  checksum: 1f49ff91a60e4ee0f8e72a2f8f3d0a3083098ba9aa2d5f0d8b185f74367add12864c1fdfe2666aa87f420642cfa5c36254c561f319b1d91009f8e8129fb7ce13
   languageName: node
   linkType: hard
 
