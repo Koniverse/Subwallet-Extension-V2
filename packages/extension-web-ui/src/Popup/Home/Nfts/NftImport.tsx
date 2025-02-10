@@ -242,7 +242,7 @@ function Component ({ className = '', modalContent, onSubmitCallback }: Props): 
   return (
     <PageWrapper
       className={className}
-      resolve={dataContext.awaitStores(['nft'])}
+      resolve={dataContext.awaitStores(['nft', 'balance'])}
     >
       <Layout.Base
         onBack={goBack}
