@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 1.3.16
+Build date: Feb 10, 2025.
+
+Features & Update:
+- Add in-app staking for Analog
+
+
 ## 1.3.15
 Build date: Feb 06, 2025.
 
