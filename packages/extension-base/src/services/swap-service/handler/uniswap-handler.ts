@@ -138,7 +138,6 @@ export class UniswapHandler implements SwapBaseInterface {
 
     const { permitData, quote, routing } = params.quote.metadata as UniswapMetadata;
 
-    console.log('permitData', permitData);
     let signature;
 
     if (permitData) {

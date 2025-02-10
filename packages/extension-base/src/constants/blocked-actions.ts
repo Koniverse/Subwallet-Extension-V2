@@ -79,7 +79,7 @@ export function getPassConfigId (currentConfig: EnvConfig, blockedConfigObjects:
       passOSConfig = true;
     } else {
       const isPassType = currentConfig.osConfig.type === appliedConfig.osConfig.type;
-      const isPassVer = !currentConfig.osConfig.version ? true : isPassVersion(currentConfig.osConfig.version, appliedConfig.osConfig.version);
+      const isPassVer = isPassVersion(currentConfig.osConfig.version as string, appliedConfig.osConfig.version);
 
       passOSConfig = isPassType && isPassVer;
     }
