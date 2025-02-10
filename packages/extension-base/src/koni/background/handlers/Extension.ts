@@ -49,7 +49,7 @@ import { isProposalExpired, isSupportWalletConnectChain, isSupportWalletConnectN
 import { ResultApproveWalletConnectSession, WalletConnectNotSupportRequest, WalletConnectSessionRequest } from '@subwallet/extension-base/services/wallet-connect-service/types';
 import { SWStorage } from '@subwallet/extension-base/storage';
 import { AccountsStore } from '@subwallet/extension-base/stores';
-import { AccountJson, AccountProxyMap, AccountsWithCurrentAddress, BalanceJson, BasicTxErrorType, BasicTxWarningCode, BuyServiceInfo, BuyTokenInfo, EarningRewardJson, EvmEIP1559FeeOption, EvmFeeInfo, FeeChainType, FeeDetail, FeeInfo, GetFeeFunction, NominationPoolInfo, OptimalYieldPathParams, RequestAccountBatchExportV2, RequestAccountCreateSuriV2, RequestAccountNameValidate, RequestBatchJsonGetAccountInfo, RequestBatchRestoreV2, RequestBounceableValidate, RequestChangeTonWalletContractVersion, RequestCheckPublicAndSecretKey, RequestCrossChainTransfer, RequestDeriveCreateMultiple, RequestDeriveCreateV3, RequestDeriveValidateV2, RequestEarlyValidateYield, RequestExportAccountProxyMnemonic, RequestGetAllTonWalletContractVersion, RequestGetDeriveAccounts, RequestGetDeriveSuggestion, RequestGetYieldPoolTargets, RequestInputAccountSubscribe, RequestJsonGetAccountInfo, RequestJsonRestoreV2, RequestMetadataHash, RequestMnemonicCreateV2, RequestMnemonicValidateV2, RequestPrivateKeyValidateV2, RequestShortenMetadata, RequestStakeCancelWithdrawal, RequestStakeClaimReward, RequestUnlockDotCheckCanMint, RequestUnlockDotSubscribeMintedData, RequestYieldLeave, RequestYieldStepSubmit, RequestYieldWithdrawal, ResponseAccountBatchExportV2, ResponseAccountCreateSuriV2, ResponseAccountNameValidate, ResponseBatchJsonGetAccountInfo, ResponseCheckPublicAndSecretKey, ResponseDeriveValidateV2, ResponseExportAccountProxyMnemonic, ResponseGetAllTonWalletContractVersion, ResponseGetDeriveAccounts, ResponseGetDeriveSuggestion, ResponseGetYieldPoolTargets, ResponseInputAccountSubscribe, ResponseJsonGetAccountInfo, ResponseMetadataHash, ResponseMnemonicCreateV2, ResponseMnemonicValidateV2, ResponsePrivateKeyValidateV2, ResponseShortenMetadata, StakingTxErrorType, StorageDataInterface, SubstrateFeeInfo, TokenSpendingApprovalParams, ValidateYieldProcessParams, YieldPoolType } from '@subwallet/extension-base/types';
+import { AccountJson, AccountProxyMap, AccountsWithCurrentAddress, BalanceJson, BasicTxErrorType, BasicTxWarningCode, BuyServiceInfo, BuyTokenInfo, EarningRewardJson, EvmEIP1559FeeOption, EvmFeeInfo, FeeChainType, FeeDetail, FeeInfo, GetFeeFunction, NominationPoolInfo, OptimalYieldPathParams, RequestAccountBatchExportV2, RequestAccountCreateSuriV2, RequestAccountNameValidate, RequestBatchJsonGetAccountInfo, RequestBatchRestoreV2, RequestBounceableValidate, RequestChangeTonWalletContractVersion, RequestCheckPublicAndSecretKey, RequestCrossChainTransfer, RequestDeriveCreateMultiple, RequestDeriveCreateV3, RequestDeriveValidateV2, RequestEarlyValidateYield, RequestExportAccountProxyMnemonic, RequestGetAllTonWalletContractVersion, RequestGetAvailableTokensPayFee, RequestGetDeriveAccounts, RequestGetDeriveSuggestion, RequestGetYieldPoolTargets, RequestInputAccountSubscribe, RequestJsonGetAccountInfo, RequestJsonRestoreV2, RequestMetadataHash, RequestMnemonicCreateV2, RequestMnemonicValidateV2, RequestPrivateKeyValidateV2, RequestShortenMetadata, RequestStakeCancelWithdrawal, RequestStakeClaimReward, RequestUnlockDotCheckCanMint, RequestUnlockDotSubscribeMintedData, RequestYieldLeave, RequestYieldStepSubmit, RequestYieldWithdrawal, ResponseAccountBatchExportV2, ResponseAccountCreateSuriV2, ResponseAccountNameValidate, ResponseBatchJsonGetAccountInfo, ResponseCheckPublicAndSecretKey, ResponseDeriveValidateV2, ResponseExportAccountProxyMnemonic, ResponseGetAllTonWalletContractVersion, ResponseGetDeriveAccounts, ResponseGetDeriveSuggestion, ResponseGetYieldPoolTargets, ResponseInputAccountSubscribe, ResponseJsonGetAccountInfo, ResponseMetadataHash, ResponseMnemonicCreateV2, ResponseMnemonicValidateV2, ResponsePrivateKeyValidateV2, ResponseShortenMetadata, StakingTxErrorType, StorageDataInterface, SubstrateFeeInfo, TokenSpendingApprovalParams, ValidateYieldProcessParams, YieldPoolType } from '@subwallet/extension-base/types';
 import { RequestAccountProxyEdit, RequestAccountProxyForget } from '@subwallet/extension-base/types/account/action/edit';
 import { RequestSubmitTransfer, RequestSubscribeTransfer, ResponseSubscribeTransfer } from '@subwallet/extension-base/types/balance/transfer';
 import { RequestClaimBridge } from '@subwallet/extension-base/types/bridge';
@@ -1595,6 +1595,38 @@ export default class KoniExtension {
       additionalValidator: additionalValidator,
       eventsHandler: eventsHandler
     });
+  }
+
+  private async getAvailableTokensPayFee (request: RequestGetAvailableTokensPayFee) {
+    const { chain, proxyId } = request;
+
+    const tokensHasBalance = await this.#koniState.balanceService.getTokensHasBalanceOfAddress(proxyId, chain);
+    const tokensHasBalanceInfo = tokensHasBalance.map((tokenSlug) => this.#koniState.chainService.getAssetBySlug(tokenSlug));
+
+    const substrateApi = this.#koniState.getSubstrateApi(chain);
+    const allPools = await substrateApi.api.query.assetConversion.pools.entries();
+
+    const multiLocationHasLp: Record<string, any>[] = [];
+
+    for (const [_pair, _] of allPools) {
+      const pair = (_pair.toHuman() as Record<string, any>[][])[0];
+      const token2 = pair[1];
+
+      multiLocationHasLp.push(token2);
+    }
+
+    const tokensCanPayFee: string[] = [];
+
+    for (const tokenInfo of tokensHasBalanceInfo) {
+      const tokenSlug = tokenInfo.slug;
+      const tokenMultiLocation = tokenInfo.metadata?.multilocation || {};
+
+      if (multiLocationHasLp.includes(tokenMultiLocation)) {
+        tokensCanPayFee.push(tokenSlug);
+      }
+    }
+
+    return tokensHasBalance;
   }
 
   private async evmNftSubmitTransaction (inputData: NftTransactionRequest): Promise<SWTransactionResponse> {
@@ -4536,6 +4568,8 @@ export default class KoniExtension {
         return await this.getOptimalTransferProcess(request as RequestOptimalTransferProcess);
       case 'pri(accounts.approveSpending)':
         return await this.approveSpending(request as TokenSpendingApprovalParams);
+      case 'pri(customFee.getAvailableTokensPayFee)':
+        return this.getAvailableTokensPayFee(request as RequestGetAvailableTokensPayFee);
 
       /// Sign QR
       case 'pri(qr.transaction.parse.substrate)':
@@ -4784,10 +4818,8 @@ export default class KoniExtension {
         /* Avail Bridge */
 
         /* Polygon Bridge */
-
       case 'pri(polygonBridge.submitClaimPolygonBridge)':
         return this.submitClaimPolygonBridge(request as RequestClaimBridge);
-
         /* Polygon Bridge */
 
         /* Ledger */
