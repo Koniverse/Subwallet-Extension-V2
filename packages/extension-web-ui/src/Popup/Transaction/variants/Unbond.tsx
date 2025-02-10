@@ -360,7 +360,7 @@ const Component: React.FC = () => {
               disabled={!isAllAccount}
               doFilter={false}
               externalAccounts={accountList}
-              label={poolInfo.type === YieldPoolType.LENDING ? t('Withdraw from account') : t('Unstake from account 2')}
+              label={poolInfo.type === YieldPoolType.LENDING ? t('Withdraw from account') : t('Unstake from account')}
             />
           </Form.Item>
           <FreeBalance
