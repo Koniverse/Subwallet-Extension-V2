@@ -477,7 +477,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferAll: options.isTransferAll,
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
-        feeCustom: selectedTransactionFee?.feeCustom
+        feeCustom: selectedTransactionFee?.feeCustom,
+        tokenPayFeeSlug: 'statemint-LOCAL-USDt' // todo: remove after test
       });
     } else {
       // Make cross chain transfer
@@ -491,7 +492,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferAll: options.isTransferAll,
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
-        feeCustom: selectedTransactionFee?.feeCustom
+        feeCustom: selectedTransactionFee?.feeCustom,
+        tokenPayFeeSlug: 'statemint-LOCAL-USDt' // todo: remove after test
       });
     }
 

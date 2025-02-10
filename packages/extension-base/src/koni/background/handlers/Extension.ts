@@ -1315,7 +1315,7 @@ export default class KoniExtension {
   }
 
   private async makeTransfer (inputData: RequestSubmitTransfer): Promise<SWTransactionResponse> {
-    const { chain, feeCustom, feeOption, from, to, tokenSlug, transferAll, transferBounceable, value } = inputData;
+    const { chain, feeCustom, feeOption, from, to, tokenSlug, transferAll, transferBounceable, value, tokenPayFeeSlug } = inputData;
     const transferTokenInfo = this.#koniState.chainService.getAssetBySlug(tokenSlug);
     const [errors, ,] = validateTransferRequest(transferTokenInfo, from, to, value, transferAll);
 
@@ -1468,6 +1468,7 @@ export default class KoniExtension {
       chain,
       feeCustom,
       feeOption,
+      tokenPayFeeSlug,
       chainType,
       transferNativeAmount,
       transaction,
@@ -1481,7 +1482,7 @@ export default class KoniExtension {
   }
 
   private async makeCrossChainTransfer (inputData: RequestCrossChainTransfer): Promise<SWTransactionResponse> {
-    const { destinationNetworkKey, feeCustom, feeOption, from, originNetworkKey, to, tokenSlug, transferAll, transferBounceable, value } = inputData;
+    const { destinationNetworkKey, feeCustom, feeOption, from, originNetworkKey, to, tokenSlug, tokenPayFeeSlug, transferAll, transferBounceable, value } = inputData;
 
     const originTokenInfo = this.#koniState.getAssetBySlug(tokenSlug);
     const destinationTokenInfo = this.#koniState.getXcmEqualAssetByChain(destinationNetworkKey, tokenSlug);
@@ -1595,6 +1596,7 @@ export default class KoniExtension {
       chainType: !isSnowBridgeEvmTransfer && !isAvailBridgeFromEvm && !isPolygonBridgeTransfer && !isPosBridgeTransfer ? ChainType.SUBSTRATE : ChainType.EVM,
       transferNativeAmount: _isNativeToken(originTokenInfo) ? value : '0',
       ignoreWarnings,
+      tokenPayFeeSlug,
       isTransferAll: transferAll,
       errors,
       additionalValidator: additionalValidator,

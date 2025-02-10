@@ -1111,10 +1111,9 @@ export default class TransactionService {
     return emitter;
   }
 
-  private signAndSendSubstrateTransaction ({ address, chain, feeCustom, id, transaction, url }: SWTransaction): TransactionEmitter {
+  private signAndSendSubstrateTransaction ({ address, chain, feeCustom, id, transaction, url, tokenPayFeeSlug }: SWTransaction): TransactionEmitter {
     const tip = (feeCustom as SubstrateTipInfo)?.tip || '0';
-    const feeAssetSlug = (feeCustom as SubstrateTipInfo)?.tokenPayFeeSlug;
-    const feeAssetId = feeAssetSlug ? this.state.chainService.getAssetBySlug(feeAssetSlug).metadata?.multilocation as Record<string, any> : undefined;
+    const feeAssetId = tokenPayFeeSlug ? this.state.chainService.getAssetBySlug(tokenPayFeeSlug).metadata?.multilocation as Record<string, any> : undefined;
 
     const emitter = new EventEmitter<TransactionEventMap>();
     const eventData: TransactionEventResponse = {
