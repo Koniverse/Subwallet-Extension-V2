@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { _getAssetSymbol } from '@subwallet/extension-base/services/chain-service/utils';
+import { ProcessTransactionData } from '@subwallet/extension-base/types';
 import { SwapBaseTxData } from '@subwallet/extension-base/types/swap';
 import { AlertBox, MetaInfo } from '@subwallet/extension-koni-ui/components';
 import { SwapRoute, SwapTransactionBlock } from '@subwallet/extension-koni-ui/components/Swap';
@@ -24,7 +25,7 @@ const Component: React.FC<Props> = (props: Props) => {
   const { currencyData, priceMap } = useSelector((state) => state.price);
   const [showQuoteExpired, setShowQuoteExpired] = useState<boolean>(false);
   const { t } = useTranslation();
-  const process = useMemo(() => transaction.process!, [transaction.process]);
+  const process = useMemo(() => transaction.process as ProcessTransactionData, [transaction.process]);
   const data = process.combineInfo as SwapBaseTxData;
 
   const recipientAddress = data.recipient || data.address;

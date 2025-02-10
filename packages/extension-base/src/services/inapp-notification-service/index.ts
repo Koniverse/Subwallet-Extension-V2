@@ -386,8 +386,8 @@ export class InappNotificationService implements CronServiceInterface {
 
     let actionType: NotificationActionType;
     let extrinsicType: ExtrinsicType;
-    let title: string = '';
-    let description: string = '';
+    let title = '';
+    let description = '';
 
     if (process.type === ProcessType.SWAP) {
       actionType = NotificationActionType.SWAP;

@@ -151,7 +151,7 @@ const Component: React.FC<Props> = (props: Props) => {
     // todo: there might be more types of extrinsic
 
     return undefined;
-  }, [transaction.data, transaction.extrinsicType]);
+  }, [transaction.data, transaction.extrinsicType, transaction.process]);
 
   return (
     <>

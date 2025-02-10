@@ -5,4 +5,3 @@ export type { BaseProcessConfirmationProps } from './Base';
 
 export { default as BaseProcessConfirmation } from './Base';
 export { default as SwapProcessConfirmation } from './Swap';
-

@@ -5,12 +5,12 @@ import { ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
 import { ProcessTransactionData, ResponseSubscribeProcessById } from '@subwallet/extension-base/types';
 import { PROCESS_DETAIL_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { cancelSubscription, subscribeProcess } from '@subwallet/extension-koni-ui/messaging';
-import { Theme, ThemeProps } from '@subwallet/extension-koni-ui/types';
+import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { ModalContext, SwModal } from '@subwallet/react-ui';
 import { SwIconProps } from '@subwallet/react-ui/es/icon';
 import React, { FC, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import styled, { useTheme } from 'styled-components';
+import styled from 'styled-components';
 
 type Props = ThemeProps & {
   processId: string;
@@ -35,9 +35,8 @@ export interface BriefActionInfo {
 const modalId = PROCESS_DETAIL_MODAL;
 
 const Component: FC<Props> = (props: Props) => {
-  const { className, processId, onCancel } = props;
+  const { className, onCancel, processId } = props;
   const { t } = useTranslation();
-  const { token } = useTheme() as Theme;
   const { inactiveModal } = useContext(ModalContext);
 
   const [process, setProcess] = useState<ProcessTransactionData | undefined>();
@@ -50,7 +49,7 @@ const Component: FC<Props> = (props: Props) => {
       if (id) {
         cancelSubscription(id).catch(console.error);
       }
-    }
+    };
 
     if (!processId) {
       inactiveModal(modalId);
@@ -74,8 +73,8 @@ const Component: FC<Props> = (props: Props) => {
     return () => {
       cancel = true;
       onCancel();
-    }
-  }, [processId]);
+    };
+  }, [inactiveModal, processId]);
 
   if (!process) {
     return null;
@@ -84,8 +83,8 @@ const Component: FC<Props> = (props: Props) => {
   return (
     <SwModal
       className={className}
-      id={modalId}
       destroyOnClose={true}
+      id={modalId}
       onCancel={onCancel}
       title={t('Actions')}
     >

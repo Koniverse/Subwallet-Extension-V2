@@ -1356,12 +1356,12 @@ export default class TransactionService {
     if (!this.cacheProcessMap.has(process.id)) {
       this.cacheProcessMap.set(process.id, process);
 
-      this.state.dbService.upsertProcessTransaction(process).catch(console.error);
+      await this.state.dbService.upsertProcessTransaction(process);
     }
   }
 
   public checkProcessExist (processId: string) {
-    return this.cacheProcessMap.has(processId)
+    return this.cacheProcessMap.has(processId);
   }
 
   private updateProcessStepStatus (step: BriefProcessStep, data: Pick<ProcessStep, 'status' | 'transactionId' | 'extrinsicHash'>) {
@@ -1404,7 +1404,7 @@ export default class TransactionService {
     }
   }
 
-  public async updateProcessInfo (id: string, combineInfo: any, step?: ProcessStep) {
+  public async updateProcessInfo (id: string, combineInfo: unknown, step?: ProcessStep) {
     const process = this.cacheProcessMap.get(id);
 
     if (process) {
@@ -1421,6 +1421,8 @@ export default class TransactionService {
       }
 
       this.cacheProcessMap.set(process.id, process);
+
+      await this.state.dbService.upsertProcessTransaction(process);
     }
   }
 

@@ -187,7 +187,7 @@ export const WalletModalContextProvider = ({ children }: Props) => {
     processModal: {
       open: openProcessModal
     }
-  }), [checkAddressQrModalActive, closeAddressQrModal, closeAlert, openAddressQrModal, openAlert, openDeriveModal]);
+  }), [checkAddressQrModalActive, closeAddressQrModal, closeAlert, openAddressQrModal, openAlert, openDeriveModal, openProcessModal]);
 
   useEffect(() => {
     if (hasMasterPassword && isLocked) {
@@ -273,8 +273,8 @@ export const WalletModalContextProvider = ({ children }: Props) => {
     }
 
     <ProcessDetailModal
-      processId={processId}
       onCancel={closeProcessModal}
+      processId={processId}
     />
   </WalletModalContext.Provider>;
 };

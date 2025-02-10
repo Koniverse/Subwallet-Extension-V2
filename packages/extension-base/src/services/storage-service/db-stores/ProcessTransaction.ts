@@ -3,8 +3,8 @@
 
 import { ProcessTransactionData } from '@subwallet/extension-base/types';
 import { liveQuery } from 'dexie';
-import BaseStoreWithAddress from './BaseStoreWithAddress';
 
+import BaseStoreWithAddress from './BaseStoreWithAddress';
 
 export default class ProcessTransaction extends BaseStoreWithAddress<ProcessTransactionData> {
   async getAll (): Promise<Record<string, ProcessTransactionData>> {
@@ -13,7 +13,7 @@ export default class ProcessTransaction extends BaseStoreWithAddress<ProcessTran
     return Object.fromEntries(all.map((item) => [item.id, item]));
   }
 
-  async observableAll () {
+  observableAll () {
     return liveQuery(
       async (): Promise<Record<string, ProcessTransactionData>> => {
         const all = await this.table.toArray();
@@ -27,7 +27,7 @@ export default class ProcessTransaction extends BaseStoreWithAddress<ProcessTran
     return this.table.get(id);
   }
 
-  async observableOne (id: string) {
+  observableOne (id: string) {
     return liveQuery(
       async () => {
         return this.table.get(id);
