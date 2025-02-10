@@ -4,7 +4,7 @@
 import { PHISHING_PAGE_REDIRECT } from '@subwallet/extension-base/defaults';
 import { PageWrapper } from '@subwallet/extension-web-ui/components';
 import { AppOnlineContentContextProvider } from '@subwallet/extension-web-ui/contexts/AppOnlineContentProvider';
-import { AppPopupModalContextProvider } from '@subwallet/extension-web-ui/contexts/AppPopupModalContext';
+import { MktCampaignModalContextProvider } from '@subwallet/extension-web-ui/contexts/MktCampaignModalContext';
 import ErrorFallback from '@subwallet/extension-web-ui/Popup/ErrorFallback';
 import { Root } from '@subwallet/extension-web-ui/Popup/Root';
 import { i18nPromise } from '@subwallet/extension-web-ui/utils';
@@ -173,11 +173,11 @@ export function Example () {
 
 export function RootWrapper () {
   return (
-    <AppPopupModalContextProvider>
+    <MktCampaignModalContextProvider>
       <AppOnlineContentContextProvider>
         <Root />
       </AppOnlineContentContextProvider>
-    </AppPopupModalContextProvider>
+    </MktCampaignModalContextProvider>
   );
 }
 
