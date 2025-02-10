@@ -169,7 +169,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   console.log('currentAccountProxy', currentAccountProxy.id);
   getAvailableTokensPayFee({
     chain: chainValue,
-    proxyId: currentAccountProxy?.id || ''
+    proxyId: currentAccountProxy?.id || '',
+    feeAmount: '999999999999'
   }).then((rs) => {
     console.log('rs', rs);
   });

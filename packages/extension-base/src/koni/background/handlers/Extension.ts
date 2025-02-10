@@ -80,6 +80,11 @@ import { assert, hexStripPrefix, hexToU8a, isAscii, isHex, u8aToHex } from '@pol
 import { addressToEvm, decodeAddress, isEthereumAddress } from '@polkadot/util-crypto';
 
 import { getSuitableRegistry, RegistrySource, setupApiRegistry, setupDappRegistry, setupDatabaseRegistry } from '../utils';
+import {
+  checkLiquidityForPath,
+  estimateTokensForPath,
+  getReserveForPath
+} from "@subwallet/extension-base/services/swap-service/handler/asset-hub/utils";
 
 export function isJsonPayload (value: SignerPayloadJSON | SignerPayloadRaw): value is SignerPayloadJSON {
   return (value as SignerPayloadJSON).genesisHash !== undefined;
@@ -1598,7 +1603,7 @@ export default class KoniExtension {
   }
 
   private async getAvailableTokensPayFee (request: RequestGetAvailableTokensPayFee) {
-    const { chain, proxyId } = request;
+    const { chain, feeAmount, proxyId } = request;
 
     const chainService = this.#koniState.chainService;
     const substrateApi = this.#koniState.getSubstrateApi(chain);
@@ -1625,7 +1630,17 @@ export default class KoniExtension {
       const poolInfo = _poolInfo.toPrimitive() as { lpToken: string} || null;
 
       if (poolInfo && poolInfo.lpToken !== undefined) {
-        tokensCanPayFee.push(tokenSlug);
+        if (feeAmount === undefined) {
+          tokensCanPayFee.push(tokenSlug);
+        } else {
+          const reserves = await getReserveForPath(substrateApi.api, [nativeTokenInfo, tokenInfo]);
+          const amounts = estimateTokensForPath(feeAmount, reserves);
+          const liquidityError = checkLiquidityForPath(amounts, reserves);
+
+          if (!liquidityError) {
+            tokensCanPayFee.push(tokenSlug);
+          }
+        }
       }
     }));
 

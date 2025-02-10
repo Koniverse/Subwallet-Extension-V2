@@ -36,4 +36,5 @@ export type RequestCrossChainTransfer = InternalRequestSign<RequestCheckCrossCha
 export interface RequestGetAvailableTokensPayFee {
   proxyId: string;
   chain: string;
+  feeAmount?: string;
 }
