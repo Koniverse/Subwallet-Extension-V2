@@ -4,12 +4,20 @@
 import { COMMON_ASSETS, COMMON_CHAIN_SLUGS } from '@subwallet/chain-list';
 import { _ChainAsset } from '@subwallet/chain-list/types';
 import { ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
-import { CRON_LISTEN_AVAIL_BRIDGE_CLAIM } from '@subwallet/extension-base/constants';
+import {CRON_LISTEN_AVAIL_BRIDGE_CLAIM, fetchLastestRemindNotificationTime} from '@subwallet/extension-base/constants';
 import { CronServiceInterface, ServiceStatus } from '@subwallet/extension-base/services/base/types';
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
 import { EventService } from '@subwallet/extension-base/services/event-service';
 import { NotificationDescriptionMap, NotificationTitleMap, ONE_DAY_MILLISECOND } from '@subwallet/extension-base/services/inapp-notification-service/consts';
-import { _BaseNotificationInfo, _NotificationInfo, ClaimAvailBridgeNotificationMetadata, ClaimPolygonBridgeNotificationMetadata, NotificationActionType, WithdrawClaimNotificationMetadata } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
+import {
+  _BaseNotificationInfo,
+  _NotificationInfo,
+  ClaimAvailBridgeNotificationMetadata,
+  ClaimPolygonBridgeNotificationMetadata,
+  NotificationActionType,
+  NotificationTab,
+  WithdrawClaimNotificationMetadata
+} from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
 import { AvailBridgeSourceChain, AvailBridgeTransaction, fetchAllAvailBridgeClaimable, fetchPolygonBridgeTransactions, hrsToMillisecond, PolygonTransaction } from '@subwallet/extension-base/services/inapp-notification-service/utils';
 import { KeyringService } from '@subwallet/extension-base/services/keyring-service';
 import DatabaseService from '@subwallet/extension-base/services/storage-service/DatabaseService';
@@ -164,27 +172,26 @@ export class InappNotificationService implements CronServiceInterface {
   }
 
   async validateAndWriteNotificationsToDB (notifications: _BaseNotificationInfo[], address: string) {
-    return;
-    // const proxyId = this.keyringService.context.belongUnifiedAccount(address) || address;
-    // const accountName = this.keyringService.context.getCurrentAccountProxyName(proxyId);
-    // const passNotifications: _NotificationInfo[] = [];
-    // const [comparedNotifications, remindTimeConfig] = await Promise.all([
-    //   this.fetchNotificationsByParams({ notificationTab: NotificationTab.ALL, proxyId }),
-    //   await fetchLastestRemindNotificationTime()
-    // ]);
-    //
-    // for (const candidateNotification of notifications) {
-    //   candidateNotification.title = candidateNotification.title.replace('{{accountName}}', accountName);
-    //
-    //   if (this.passValidateNotification(candidateNotification, comparedNotifications, remindTimeConfig)) {
-    //     passNotifications.push({
-    //       ...candidateNotification,
-    //       proxyId
-    //     });
-    //   }
-    // }
-    //
-    // await this.dbService.upsertNotifications(passNotifications);
+    const proxyId = this.keyringService.context.belongUnifiedAccount(address) || address;
+    const accountName = this.keyringService.context.getCurrentAccountProxyName(proxyId);
+    const passNotifications: _NotificationInfo[] = [];
+    const [comparedNotifications, remindTimeConfig] = await Promise.all([
+      this.fetchNotificationsByParams({ notificationTab: NotificationTab.ALL, proxyId }),
+      await fetchLastestRemindNotificationTime()
+    ]);
+
+    for (const candidateNotification of notifications) {
+      candidateNotification.title = candidateNotification.title.replace('{{accountName}}', accountName);
+
+      if (this.passValidateNotification(candidateNotification, comparedNotifications, remindTimeConfig)) {
+        passNotifications.push({
+          ...candidateNotification,
+          proxyId
+        });
+      }
+    }
+
+    await this.dbService.upsertNotifications(passNotifications);
   }
 
   cronCreateBridgeClaimNotification () {
@@ -373,7 +380,7 @@ export class InappNotificationService implements CronServiceInterface {
 
     try {
       this.status = ServiceStatus.STARTING;
-      // await this.startCron();
+      await this.startCron();
       this.status = ServiceStatus.STARTED;
     } catch (e) {
 
