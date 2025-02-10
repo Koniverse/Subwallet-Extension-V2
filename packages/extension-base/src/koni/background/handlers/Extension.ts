@@ -1600,33 +1600,36 @@ export default class KoniExtension {
   private async getAvailableTokensPayFee (request: RequestGetAvailableTokensPayFee) {
     const { chain, proxyId } = request;
 
-    const tokensHasBalance = await this.#koniState.balanceService.getTokensHasBalanceOfAddress(proxyId, chain);
-    const tokensHasBalanceInfo = tokensHasBalance.map((tokenSlug) => this.#koniState.chainService.getAssetBySlug(tokenSlug));
-
+    const chainService = this.#koniState.chainService;
     const substrateApi = this.#koniState.getSubstrateApi(chain);
-    const allPools = await substrateApi.api.query.assetConversion.pools.entries();
 
-    const multiLocationHasLp: Record<string, any>[] = [];
+    const tokensHasBalance = await this.#koniState.balanceService.getTokensHasBalanceIgnoreNative(proxyId, chain);
+    const tokensHasBalanceInfo = tokensHasBalance.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => token.metadata && token.metadata.multilocation);
 
-    for (const [_pair, _] of allPools) {
-      const pair = (_pair.toHuman() as Record<string, any>[][])[0];
-      const token2 = pair[1];
+    const nativeTokenInfo = chainService.getNativeTokenInfo(chain);
 
-      multiLocationHasLp.push(token2);
+    if (!nativeTokenInfo.metadata || !nativeTokenInfo.metadata.multilocation) {
+      return [];
     }
+
+    const nativeMultiLocation = nativeTokenInfo.metadata.multilocation;
 
     const tokensCanPayFee: string[] = [];
 
-    for (const tokenInfo of tokensHasBalanceInfo) {
+    await Promise.all(tokensHasBalanceInfo.map(async (tokenInfo) => {
       const tokenSlug = tokenInfo.slug;
-      const tokenMultiLocation = tokenInfo.metadata?.multilocation || {};
+      // @ts-ignore
+      const tokenMultiLocation = tokenInfo.metadata.multilocation;
 
-      if (multiLocationHasLp.includes(tokenMultiLocation)) {
+      const _poolInfo = await substrateApi.api.query.assetConversion.pools([nativeMultiLocation, tokenMultiLocation]);
+      const poolInfo = _poolInfo.toPrimitive() as { lpToken: string} || null;
+
+      if (poolInfo && poolInfo.lpToken !== undefined) {
         tokensCanPayFee.push(tokenSlug);
       }
-    }
+    }));
 
-    return tokensHasBalance;
+    return tokensCanPayFee;
   }
 
   private async evmNftSubmitTransaction (inputData: NftTransactionRequest): Promise<SWTransactionResponse> {
