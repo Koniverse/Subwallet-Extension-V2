@@ -36,7 +36,7 @@ import { createAvailBridgeExtrinsicFromAvail, createAvailBridgeTxFromEth, create
 import { getClaimTxOnAvail, getClaimTxOnEthereum, isAvailChainBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/availBridge';
 import { _isPolygonChainBridge, getClaimPolygonBridge, isClaimedPolygonBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/polygonBridge';
 import { _isPosChainBridge, getClaimPosBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/posBridge';
-import { _API_OPTIONS_CHAIN_GROUP, _DEFAULT_MANTA_ZK_CHAIN, _MANTA_ZK_CHAIN_GROUP, _ZK_ASSET_PREFIX, SUFFICIENT_CHAIN } from '@subwallet/extension-base/services/chain-service/constants';
+import { _DEFAULT_MANTA_ZK_CHAIN, _MANTA_ZK_CHAIN_GROUP, _ZK_ASSET_PREFIX, SUFFICIENT_CHAIN } from '@subwallet/extension-base/services/chain-service/constants';
 import { _ChainApiStatus, _ChainConnectionStatus, _ChainState, _NetworkUpsertParams, _SubstrateAdapterQueryArgs, _SubstrateApi, _ValidateCustomAssetRequest, _ValidateCustomAssetResponse, EnableChainParams, EnableMultiChainParams } from '@subwallet/extension-base/services/chain-service/types';
 import { _getAssetDecimals, _getAssetSymbol, _getChainNativeTokenBasicInfo, _getContractAddressOfToken, _getEvmChainId, _getTokenMinAmount, _getTokenOnChainAssetId, _getXcmAssetMultilocation, _isAssetSmartContractNft, _isBridgedToken, _isChainEvmCompatible, _isChainSubstrateCompatible, _isChainTonCompatible, _isCustomAsset, _isLocalToken, _isMantaZkAsset, _isNativeToken, _isPureEvmChain, _isTokenEvmSmartContract, _isTokenTransferredByEvm, _isTokenTransferredByTon } from '@subwallet/extension-base/services/chain-service/utils';
 import { ClaimPolygonBridgeNotificationMetadata, NotificationSetup } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
@@ -49,13 +49,15 @@ import { isProposalExpired, isSupportWalletConnectChain, isSupportWalletConnectN
 import { ResultApproveWalletConnectSession, WalletConnectNotSupportRequest, WalletConnectSessionRequest } from '@subwallet/extension-base/services/wallet-connect-service/types';
 import { SWStorage } from '@subwallet/extension-base/storage';
 import { AccountsStore } from '@subwallet/extension-base/stores';
-import { AccountJson, AccountProxyMap, AccountsWithCurrentAddress, BalanceJson, BasicTxErrorType, BasicTxWarningCode, BuyServiceInfo, BuyTokenInfo, EarningRewardJson, NominationPoolInfo, OptimalYieldPathParams, RequestAccountBatchExportV2, RequestAccountCreateSuriV2, RequestAccountNameValidate, RequestBatchJsonGetAccountInfo, RequestBatchRestoreV2, RequestBounceableValidate, RequestChangeTonWalletContractVersion, RequestCheckPublicAndSecretKey, RequestCrossChainTransfer, RequestDeriveCreateMultiple, RequestDeriveCreateV3, RequestDeriveValidateV2, RequestEarlyValidateYield, RequestExportAccountProxyMnemonic, RequestGetAllTonWalletContractVersion, RequestGetDeriveAccounts, RequestGetDeriveSuggestion, RequestGetYieldPoolTargets, RequestInputAccountSubscribe, RequestJsonGetAccountInfo, RequestJsonRestoreV2, RequestMetadataHash, RequestMnemonicCreateV2, RequestMnemonicValidateV2, RequestPrivateKeyValidateV2, RequestShortenMetadata, RequestStakeCancelWithdrawal, RequestStakeClaimReward, RequestSubmitMultiProcess, RequestTransfer, RequestUnlockDotCheckCanMint, RequestUnlockDotSubscribeMintedData, RequestYieldLeave, RequestYieldStepSubmit, RequestYieldWithdrawal, ResponseAccountBatchExportV2, ResponseAccountCreateSuriV2, ResponseAccountNameValidate, ResponseBatchJsonGetAccountInfo, ResponseCheckPublicAndSecretKey, ResponseDeriveValidateV2, ResponseExportAccountProxyMnemonic, ResponseGetAllTonWalletContractVersion, ResponseGetDeriveAccounts, ResponseGetDeriveSuggestion, ResponseGetYieldPoolTargets, ResponseInputAccountSubscribe, ResponseJsonGetAccountInfo, ResponseMetadataHash, ResponseMnemonicCreateV2, ResponseMnemonicValidateV2, ResponsePrivateKeyValidateV2, ResponseShortenMetadata, StakingTxErrorType, StorageDataInterface, TokenSpendingApprovalParams, ValidateYieldProcessParams, YieldPoolType } from '@subwallet/extension-base/types';
+import {
+  AccountJson, AccountProxyMap, AccountsWithCurrentAddress, BalanceJson, BasicTxErrorType, BasicTxWarningCode, BriefProcessStep, BriefSwapStep, BuyServiceInfo, BuyTokenInfo, CommonStepType, EarningRewardJson, NominationPoolInfo, OptimalYieldPathParams, ProcessStep, ProcessTransactionData, ProcessType, RequestAccountBatchExportV2, RequestAccountCreateSuriV2, RequestAccountNameValidate, RequestBatchJsonGetAccountInfo, RequestBatchRestoreV2, RequestBounceableValidate, RequestChangeTonWalletContractVersion, RequestCheckPublicAndSecretKey, RequestCrossChainTransfer, RequestDeriveCreateMultiple, RequestDeriveCreateV3, RequestDeriveValidateV2, RequestEarlyValidateYield, RequestExportAccountProxyMnemonic, RequestGetAllTonWalletContractVersion, RequestGetDeriveAccounts, RequestGetDeriveSuggestion, RequestGetYieldPoolTargets, RequestInputAccountSubscribe, RequestJsonGetAccountInfo, RequestJsonRestoreV2, RequestMetadataHash, RequestMnemonicCreateV2, RequestMnemonicValidateV2, RequestPrivateKeyValidateV2, RequestShortenMetadata, RequestStakeCancelWithdrawal, RequestStakeClaimReward, RequestSubmitProcessTransaction, RequestSubscribeProcessById, RequestTransfer, RequestUnlockDotCheckCanMint, RequestUnlockDotSubscribeMintedData, RequestYieldLeave, RequestYieldStepSubmit, RequestYieldWithdrawal, ResponseAccountBatchExportV2, ResponseAccountCreateSuriV2, ResponseAccountNameValidate, ResponseBatchJsonGetAccountInfo, ResponseCheckPublicAndSecretKey, ResponseDeriveValidateV2, ResponseExportAccountProxyMnemonic, ResponseGetAllTonWalletContractVersion, ResponseGetDeriveAccounts, ResponseGetDeriveSuggestion, ResponseGetYieldPoolTargets, ResponseInputAccountSubscribe, ResponseJsonGetAccountInfo, ResponseMetadataHash, ResponseMnemonicCreateV2, ResponseMnemonicValidateV2, ResponsePrivateKeyValidateV2, ResponseShortenMetadata, ResponseSubscribeProcessById, StakingTxErrorType, StepStatus, StorageDataInterface, SwapBaseTxData, SwapStepType, TokenSpendingApprovalParams, ValidateYieldProcessParams, YieldPoolType
+} from '@subwallet/extension-base/types';
 import { RequestAccountProxyEdit, RequestAccountProxyForget } from '@subwallet/extension-base/types/account/action/edit';
 import { RequestClaimBridge } from '@subwallet/extension-base/types/bridge';
 import { GetNotificationParams, RequestIsClaimedPolygonBridge, RequestSwitchStatusParams } from '@subwallet/extension-base/types/notification';
 import { CommonOptimalPath } from '@subwallet/extension-base/types/service-base';
 import { SwapPair, SwapQuoteResponse, SwapRequest, SwapRequestResult, SwapSubmitParams, ValidateSwapProcessParams } from '@subwallet/extension-base/types/swap';
-import { _analyzeAddress, BN_ZERO, combineAllAccountProxy, createTransactionFromRLP, isSameAddress, MODULE_SUPPORT, reformatAddress, signatureToHex, toBNString, Transaction as QrTransaction, transformAccounts, transformAddresses, uniqueStringArray } from '@subwallet/extension-base/utils';
+import { _analyzeAddress, BN_ZERO, combineAllAccountProxy, createTransactionFromRLP, isSameAddress, MODULE_SUPPORT, reformatAddress, signatureToHex, toBNString, Transaction as QrTransaction, transformAccounts, transformAddresses, uniqueStringArray, wait } from '@subwallet/extension-base/utils';
 import { parseContractInput, parseEvmRlp } from '@subwallet/extension-base/utils/eth/parseTransaction';
 import { MetadataDef } from '@subwallet/extension-inject/types';
 import { getKeypairTypeByAddress, isAddress, isSubstrateAddress, isTonAddress } from '@subwallet/keyring';
@@ -2739,28 +2741,41 @@ export default class KoniExtension {
     return transactionResult;
   }
 
-  private subscribeTransactions (id: string, port: chrome.runtime.Port): Record<string, SWTransactionResult> {
+  private async subscribeTransactions (id: string, port: chrome.runtime.Port): Promise<Record<string, SWTransactionResult>> {
     const cb = createSubscription<'pri(transactions.subscribe)'>(id, port);
 
-    function convertRs (rs: Record<string, SWTransaction>): Record<string, SWTransactionResult> {
+    function convertRs (rs: Record<string, SWTransaction>, processMap: Record<string, ProcessTransactionData>): Record<string, SWTransactionResult> {
       return Object.fromEntries(Object.entries(rs).map(([key, value]) => {
-        const { additionalValidator, eventsHandler, transaction, ...transactionResult } = value;
+        const { additionalValidator, eventsHandler, step, transaction, ..._transactionResult } = value;
+        const transactionResult = _transactionResult as SWTransactionResult;
+
+        if (step?.processId) {
+          const process = processMap[step.processId];
+
+          if (process) {
+            transactionResult.process = process;
+          }
+        }
 
         return [key, transactionResult];
       }));
     }
 
     const transactionsSubject = this.#koniState.transactionService.getTransactionSubject();
-    const transactionsSubscription = transactionsSubject.subscribe((rs) => {
-      cb(convertRs(rs));
+    const transactionsObservable = transactionsSubject.asObservable();
+    const processTransactionObservable = await this.#koniState.dbService.observableProcessTransactions();
+
+    const subscription = combineLatest({ transactions: transactionsObservable, processMap: processTransactionObservable }).subscribe(({ processMap,
+      transactions }) => {
+      cb(convertRs(transactions, processMap));
     });
 
     port.onDisconnect.addListener((): void => {
-      transactionsSubscription.unsubscribe();
+      subscription.unsubscribe();
       this.cancelSubscription(id);
     });
 
-    return convertRs(transactionsSubject.getValue());
+    return convertRs(transactionsSubject.getValue(), await this.#koniState.dbService.getProcessTransactions());
   }
 
   private subscribeNotifications (id: string, port: chrome.runtime.Port) {
@@ -3763,6 +3778,98 @@ export default class KoniExtension {
       }
     };
 
+    let step: BriefProcessStep | undefined;
+
+    if (processId) {
+      if (!this.#koniState.transactionService.checkProcessExist(processId)) {
+        const combineInfo: SwapBaseTxData = {
+          provider: quote.provider,
+          slippage: inputData.slippage,
+          address,
+          recipient,
+          quote,
+          process
+        }
+
+        await this.#koniState.transactionService.createProcessIfNeed({
+          id: processId,
+          address: address,
+          type: ProcessType.SWAP,
+          combineInfo,
+          steps: inputData.process.steps
+            .map((step, index): ProcessStep => {
+              const fee = inputData.process.totalFee[index];
+
+              if (step.type === SwapStepType.SWAP) {
+                const metadata: BriefSwapStep = {
+                  pair: quote.pair,
+                  aliveUntil: quote.aliveUntil,
+                  fromAmount: quote.fromAmount,
+                  rate: quote.rate,
+                  provider: quote.provider,
+                  route: quote.route,
+                  toAmount: quote.toAmount
+                };
+
+                return {
+                  ...step,
+                  status: StepStatus.QUEUED,
+                  fee,
+                  metadata: metadata as unknown as Record<string, unknown>
+                };
+              }
+
+              return {
+                ...step,
+                fee,
+                status: StepStatus.QUEUED
+              };
+            })
+            .filter((step) => step.type !== CommonStepType.DEFAULT)
+          ,
+          status: StepStatus.QUEUED
+        });
+      }
+
+      const _step = process.steps[inputData.currentStep];
+      const isLastStep = inputData.currentStep === process.steps.length - 1;
+
+      step = {
+        processId,
+        stepId: _step.id
+      };
+
+      if (isLastStep) {
+        const metadata: BriefSwapStep = {
+          pair: quote.pair,
+          aliveUntil: quote.aliveUntil,
+          fromAmount: quote.fromAmount,
+          rate: quote.rate,
+          provider: quote.provider,
+          route: quote.route,
+          toAmount: quote.toAmount
+        };
+
+        const step: ProcessStep = {
+          ..._step,
+          status: StepStatus.QUEUED,
+          fee: process.totalFee[inputData.currentStep],
+          metadata: metadata as unknown as Record<string, unknown>
+        };
+
+        const combineInfo: SwapBaseTxData = {
+          provider: quote.provider,
+          slippage: inputData.slippage,
+          address,
+          recipient,
+          quote,
+          process
+        }
+
+        await this.#koniState.transactionService.updateProcessInfo(processId, combineInfo, step);
+      }
+    }
+
     return await this.#koniState.transactionService.handleTransaction({
       address,
       chain: txChain,
@@ -3775,7 +3882,8 @@ export default class KoniExtension {
       transferNativeAmount,
       ...this.createPassConfirmationParams(isPassConfirmation),
       eventsHandler,
-      processId
+      step
+      // processId
       // skipFeeValidation: chosenFeeToken && allowSkipValidation
     });
   }
@@ -3909,14 +4017,14 @@ export default class KoniExtension {
 
   /* Multi process */
 
-  private async handleMultiProcess (_request: RequestSubmitMultiProcess): Promise<SWTransactionResponse> {
+  private async handleSubmitProcessTransaction (_request: RequestSubmitProcessTransaction): Promise<SWTransactionResponse> {
     const { id: processId, request: requestData, type } = _request;
 
     switch (type) {
-      case 'earning':
+      case ProcessType.EARNING:
 
       // eslint-disable-next-line no-fallthrough
-      case 'swap': {
+      case ProcessType.SWAP: {
         const currentStep = requestData.currentStep;
 
         type SubmitFunction = (step: number, callback?: (rs: SWTransactionResponse) => void) => Promise<SWTransactionResponse>;
@@ -3924,7 +4032,7 @@ export default class KoniExtension {
         let stepNums: number;
         let submitData: SubmitFunction;
 
-        if (type === 'earning') {
+        if (type === ProcessType.EARNING) {
           const data = requestData as RequestYieldStepSubmit;
 
           submitData = async (step: number, callback?: (rs: SWTransactionResponse) => void): Promise<SWTransactionResponse> => {
@@ -3993,17 +4101,18 @@ export default class KoniExtension {
               return rs;
             }
 
+            if (rs.extrinsicType === ExtrinsicType.TRANSFER_XCM) {
+              // Wait for 30s to make sure asset is transferred to the destination chain
+              await wait(30 * 1000);
+            }
+
             return loopSubmit(submitFunc, step + 1);
           }
         };
 
         return new Promise<SWTransactionResponse>((resolve, reject) => {
           loopSubmit(submitData, currentStep, resolve)
-            .then((rs) => {
-              if (!rs.errors.length && !rs.warnings.length) {
-                reject(rs.errors[0] || rs.warnings[0]);
-              }
-            })
+            .then(resolve)
             .catch(reject);
         });
       }
@@ -4023,6 +4132,28 @@ export default class KoniExtension {
         isPassConfirmation: false
       };
     }
+  }
+
+  private async subscribeProcessById (request: RequestSubscribeProcessById, id: string, port: chrome.runtime.Port): Promise<ResponseSubscribeProcessById> {
+    const cb = createSubscription<'pri(process.subscribe.id)'>(id, port);
+    const observable = await this.#koniState.dbService.observableProcessTransactionById(request.processId);
+    const subscription = observable.subscribe((rs) => {
+      cb({
+        process: rs,
+        id
+      });
+    });
+
+    this.createUnsubscriptionHandle(id, subscription.unsubscribe);
+
+    port.onDisconnect.addListener((): void => {
+      this.cancelSubscription(id);
+    });
+
+    return {
+      process: await this.#koniState.dbService.getProcessTransactionById(request.processId),
+      id
+    };
   }
 
   /* Multi process */
@@ -4639,8 +4770,10 @@ export default class KoniExtension {
         /* Ledger */
 
         /* Multi process */
-      case 'pri(transaction.multi.process)':
-        return this.handleMultiProcess(request as RequestSubmitMultiProcess);
+      case 'pri(process.transaction.submit)':
+        return this.handleSubmitProcessTransaction(request as RequestSubmitProcessTransaction);
+      case 'pri(process.subscribe.id)':
+        return this.subscribeProcessById(request as RequestSubscribeProcessById, id, port);
         /* Multi process */
       // Default
       default:

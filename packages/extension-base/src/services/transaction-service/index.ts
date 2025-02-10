@@ -22,7 +22,7 @@ import { getBaseTransactionInfo, getTransactionId, isSubstrateTransaction, isTon
 import { SWTransaction, SWTransactionInput, SWTransactionResponse, TransactionEmitter, TransactionEventMap, TransactionEventResponse, ValidateTransactionResponseInput } from '@subwallet/extension-base/services/transaction-service/types';
 import { getExplorerLink, parseTransactionData } from '@subwallet/extension-base/services/transaction-service/utils';
 import { isWalletConnectRequest } from '@subwallet/extension-base/services/wallet-connect-service/helpers';
-import { AccountJson, BasicTxErrorType, BasicTxWarningCode, LeavePoolAdditionalData, RequestStakePoolingBonding, RequestYieldStepSubmit, SpecialYieldPoolInfo, SubmitJoinNominationPool, Web3Transaction, YieldPoolType } from '@subwallet/extension-base/types';
+import { AccountJson, BasicTxErrorType, BasicTxWarningCode, BriefProcessStep, LeavePoolAdditionalData, ProcessStep, ProcessTransactionData, RequestStakePoolingBonding, RequestYieldStepSubmit, SpecialYieldPoolInfo, StepStatus, SubmitJoinNominationPool, Web3Transaction, YieldPoolType } from '@subwallet/extension-base/types';
 import { _isRuntimeUpdated, anyNumberToBN, pairToAccount, reformatAddress } from '@subwallet/extension-base/utils';
 import { mergeTransactionAndSignature } from '@subwallet/extension-base/utils/eth/mergeTransactionAndSignature';
 import { isContractAddress, parseContractInput } from '@subwallet/extension-base/utils/eth/parseTransaction';
@@ -266,10 +266,14 @@ export default class TransactionService {
     // Send Transaction
     const emitter = await (transaction.chainType === 'substrate' ? this.signAndSendSubstrateTransaction(transaction) : transaction.chainType === 'evm' ? this.signAndSendEvmTransaction(transaction) : this.signAndSendTonTransaction(transaction));
 
-    const { eventsHandler } = transaction;
+    const { eventsHandler, step } = transaction;
 
     emitter.on('signed', (data: TransactionEventResponse) => {
       this.onSigned(data);
+
+      if (step) {
+        this.updateProcessStepStatus(step, { transactionId: transaction.id, status: StepStatus.PROCESSING });
+      }
     });
 
     emitter.on('send', (data: TransactionEventResponse) => {
@@ -283,11 +287,19 @@ export default class TransactionService {
     emitter.on('success', (data: TransactionEventResponse) => {
       this.handlePostProcessing(data.id);
       this.onSuccess(data);
+
+      if (step) {
+        this.updateProcessStepStatus(step, { status: StepStatus.COMPLETE, extrinsicHash: data.extrinsicHash });
+      }
     });
 
     emitter.on('error', (data: TransactionEventResponse) => {
       // this.handlePostProcessing(data.id); // might enable this later
       this.onFailed({ ...data, errors: [...data.errors, new TransactionError(BasicTxErrorType.INTERNAL_ERROR)] });
+
+      if (step) {
+        this.updateProcessStepStatus(step, { status: StepStatus.COMPLETE });
+      }
     });
 
     emitter.on('timeout', (data: TransactionEventResponse) => {
@@ -350,7 +362,8 @@ export default class TransactionService {
       blockNumber: 0, // Will be added in next step
       blockHash: '', // Will be added in next step
       nonce: nonce ?? 0,
-      startBlock: startBlock || 0
+      startBlock: startBlock || 0,
+      processId: transaction.step?.processId
     };
 
     const nativeAsset = _getChainNativeTokenBasicInfo(chainInfo);
@@ -682,6 +695,8 @@ export default class TransactionService {
 
     // Create Input History Transaction History
     this.state.historyService.insertHistories(this.transactionToHistories(id, startBlock, nonce)).catch(console.error);
+
+    this.createProcessNotification(id).catch(console.error);
 
     console.debug(`Transaction "${id}" is sent`);
   }
@@ -1333,6 +1348,92 @@ export default class TransactionService {
       extrinsicHash: transaction.extrinsicHash
     })
       .catch(console.error);
+  }
+
+  private cacheProcessMap: Map<string, ProcessTransactionData> = new Map();
+
+  public async createProcessIfNeed (process: ProcessTransactionData) {
+    if (!this.cacheProcessMap.has(process.id)) {
+      this.cacheProcessMap.set(process.id, process);
+
+      this.state.dbService.upsertProcessTransaction(process).catch(console.error);
+    }
+  }
+
+  public checkProcessExist (processId: string) {
+    return this.cacheProcessMap.has(processId)
+  }
+
+  private updateProcessStepStatus (step: BriefProcessStep, data: Pick<ProcessStep, 'status' | 'transactionId' | 'extrinsicHash'>) {
+    const { processId, stepId } = step;
+    const process = this.cacheProcessMap.get(processId);
+
+    if (process) {
+      const step = process.steps.find((item) => item.id === stepId);
+
+      if (step) {
+        Object.assign(step, data);
+
+        if (step.status === StepStatus.COMPLETE) {
+          const nextStep = process.steps.find((item) => item.id === stepId + 1);
+
+          if (nextStep) {
+            nextStep.status = StepStatus.PREPARE;
+          }
+        }
+      }
+
+      if (process.steps.some((item) => item.status === StepStatus.PROCESSING)) {
+        process.status = StepStatus.PROCESSING;
+      }
+
+      if (process.steps.every((item) => item.status === StepStatus.COMPLETE)) {
+        process.status = StepStatus.COMPLETE;
+      }
+
+      if (process.steps.every((item) => item.status !== StepStatus.QUEUED) && process.steps.some((item) => item.status === StepStatus.FAILED)) {
+        process.status = StepStatus.FAILED;
+      }
+
+      this.cacheProcessMap.set(processId, process);
+      this.state.dbService.upsertProcessTransaction(process).catch(console.error);
+
+      if (process.status === StepStatus.COMPLETE) {
+        this.cacheProcessMap.delete(processId);
+      }
+    }
+  }
+
+  public async updateProcessInfo (id: string, combineInfo: any, step?: ProcessStep) {
+    const process = this.cacheProcessMap.get(id);
+
+    if (process) {
+      if (step) {
+        const index = process.steps.findIndex((item) => item.id === step?.id);
+
+        if (index !== -1) {
+          process.steps[index] = step;
+        }
+      }
+
+      if (combineInfo) {
+        process.combineInfo = combineInfo;
+      }
+
+      this.cacheProcessMap.set(process.id, process);
+    }
+  }
+
+  public async createProcessNotification (transactionId: string) {
+    const transaction = this.getTransaction(transactionId);
+
+    if (transaction && transaction.step?.processId) {
+      const process = this.cacheProcessMap.get(transaction.step.processId);
+
+      if (process) {
+        await this.state.inappNotificationService.createProcessNotification(process);
+      }
+    }
   }
 
   public resetWallet (): void {

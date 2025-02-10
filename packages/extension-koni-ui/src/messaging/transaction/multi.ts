@@ -2,10 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { SWTransactionResponse } from '@subwallet/extension-base/services/transaction-service/types';
-import { RequestSubmitMultiProcess } from '@subwallet/extension-base/types';
+import { RequestSubmitProcessTransaction, RequestSubscribeProcessById, ResponseSubscribeProcessById } from '@subwallet/extension-base/types';
 
 import { sendMessage } from '../base';
 
-export async function submitMulti (request: RequestSubmitMultiProcess): Promise<SWTransactionResponse> {
-  return sendMessage('pri(transaction.multi.process)', request);
+export async function submitProcess (request: RequestSubmitProcessTransaction): Promise<SWTransactionResponse> {
+  return sendMessage('pri(process.transaction.submit)', request);
+}
+
+export async function subscribeProcess (request: RequestSubscribeProcessById, cb: (data: ResponseSubscribeProcessById) => void): Promise<ResponseSubscribeProcessById> {
+  return sendMessage('pri(process.subscribe.id)', request, cb);
 }
