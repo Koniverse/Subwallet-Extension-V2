@@ -81,5 +81,5 @@ export const DERIVE_ACCOUNT_ACTION_MODAL = 'derive-account-action-modal';
 /* Derive */
 
 /* Process */
-export const PROCESS_DETAIL_MODAL = 'process-detail-modal';
+export const TRANSACTION_PROGRESS_DETAIL_MODAL = 'transaction-progress-detail-modal';
 /* Process */

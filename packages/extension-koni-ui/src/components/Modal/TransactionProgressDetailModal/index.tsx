@@ -3,7 +3,7 @@
 
 import { ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
 import { ProcessTransactionData, ResponseSubscribeProcessById } from '@subwallet/extension-base/types';
-import { PROCESS_DETAIL_MODAL } from '@subwallet/extension-koni-ui/constants';
+import { TRANSACTION_PROGRESS_DETAIL_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { cancelSubscription, subscribeProcess } from '@subwallet/extension-koni-ui/messaging';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { ModalContext, SwModal } from '@subwallet/react-ui';
@@ -11,6 +11,10 @@ import { SwIconProps } from '@subwallet/react-ui/es/icon';
 import React, { FC, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
+
+import { CurrentProgressStep } from './parts/CurrentProgressStep';
+import { ProgressStepList } from './parts/ProgressStepList';
+import { TransactionInfoBlock } from './parts/TransactionInfoBlock';
 
 type Props = ThemeProps & {
   processId: string;
@@ -32,14 +36,14 @@ export interface BriefActionInfo {
   backgroundColor?: ActionInfo['backgroundColor'];
 }
 
-const modalId = PROCESS_DETAIL_MODAL;
+const modalId = TRANSACTION_PROGRESS_DETAIL_MODAL;
 
 const Component: FC<Props> = (props: Props) => {
   const { className, onCancel, processId } = props;
   const { t } = useTranslation();
   const { inactiveModal } = useContext(ModalContext);
 
-  const [process, setProcess] = useState<ProcessTransactionData | undefined>();
+  const [progressData, setProgressData] = useState<ProcessTransactionData | undefined>();
 
   useEffect(() => {
     let cancel = false;
@@ -57,7 +61,7 @@ const Component: FC<Props> = (props: Props) => {
       const updateProcess = (data: ResponseSubscribeProcessById) => {
         if (!cancel) {
           id = data.id;
-          setProcess(data.process);
+          setProgressData(data.process);
 
           console.debug('ProcessDetailModal', data);
         } else {
@@ -76,7 +80,7 @@ const Component: FC<Props> = (props: Props) => {
     };
   }, [inactiveModal, processId]);
 
-  if (!process) {
+  if (!progressData) {
     return null;
   }
 
@@ -89,14 +93,18 @@ const Component: FC<Props> = (props: Props) => {
       title={t('Actions')}
     >
       Process {processId}
+
+      <CurrentProgressStep progressData={progressData} />
+      <TransactionInfoBlock progressData={progressData} />
+      <ProgressStepList progressData={progressData} />
     </SwModal>
   );
 };
 
-const ProcessDetailModal = styled(Component)<Props>(({ theme: { token } }: Props) => {
+const TransactionProgressDetailModal = styled(Component)<Props>(({ theme: { token } }: Props) => {
   return ({
 
   });
 });
 
-export default ProcessDetailModal;
+export default TransactionProgressDetailModal;

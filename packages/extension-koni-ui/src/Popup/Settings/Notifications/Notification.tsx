@@ -70,7 +70,7 @@ const alertModalId = 'notification-alert-modal';
 
 function Component ({ className = '' }: Props): React.ReactElement<Props> {
   const { activeModal, checkActive } = useContext(ModalContext);
-  const { processModal: { open: openProcessModal } } = useContext(WalletModalContext);
+  const { transactionProgressDetailModal: { open: openTransactionProgressModal } } = useContext(WalletModalContext);
 
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -419,7 +419,7 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
         case NotificationActionType.SWAP: {
           const metadata = item.metadata as ProcessNotificationMetadata;
 
-          openProcessModal(metadata.processId);
+          openTransactionProgressModal(metadata.processId);
 
           break;
         }
@@ -433,7 +433,7 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
           });
       }
     };
-  }, [accounts, showActiveChainModal, chainStateMap, chainsByAccountType, currentAccountProxy, currentTimestampMs, earningRewards, isAllAccount, isTrigger, navigate, poolInfoMap, setClaimAvailBridgeStorage, setClaimRewardStorage, setWithdrawStorage, showWarningModal, yieldPositions, openProcessModal]);
+  }, [accounts, showActiveChainModal, chainStateMap, chainsByAccountType, currentAccountProxy, currentTimestampMs, earningRewards, isAllAccount, isTrigger, navigate, poolInfoMap, setClaimAvailBridgeStorage, setClaimRewardStorage, setWithdrawStorage, showWarningModal, yieldPositions, openTransactionProgressModal]);
 
   const renderItem = useCallback((item: NotificationInfoItem) => {
     return (
