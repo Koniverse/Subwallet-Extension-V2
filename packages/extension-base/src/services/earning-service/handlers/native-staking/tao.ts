@@ -76,16 +76,6 @@ export const bittensorApiKey = (): string => {
 /* Fetch data */
 
 export async function fetchDelegates (): Promise<ValidatorResponse> {
-  console.log('BITTENSOR_API_KEY_1', BITTENSOR_API_KEY_1);
-  console.log('BITTENSOR_API_KEY_2', BITTENSOR_API_KEY_2);
-  console.log('BITTENSOR_API_KEY_3', BITTENSOR_API_KEY_3);
-  console.log('BITTENSOR_API_KEY_4', BITTENSOR_API_KEY_4);
-  console.log('BITTENSOR_API_KEY_5', BITTENSOR_API_KEY_5);
-  console.log('BITTENSOR_API_KEY_6', BITTENSOR_API_KEY_6);
-  console.log('BITTENSOR_API_KEY_7', BITTENSOR_API_KEY_7);
-  console.log('BITTENSOR_API_KEY_8', BITTENSOR_API_KEY_8);
-  console.log('BITTENSOR_API_KEY_9', BITTENSOR_API_KEY_9);
-
   const apiKey = bittensorApiKey();
 
   return new Promise(function (resolve) {
