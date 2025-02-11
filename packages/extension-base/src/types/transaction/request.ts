@@ -38,3 +38,9 @@ export interface RequestGetTokensCanPayFee {
   chain: string;
   feeAmount?: string;
 }
+
+export interface RequestGetAmountForPair {
+  amount: string,
+  tokenSlug1: string,
+  tokenSlug2: string
+}
