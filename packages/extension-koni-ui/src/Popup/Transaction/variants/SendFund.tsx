@@ -1012,7 +1012,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           loading={loading}
           onSelect={setSelectedTransactionFee}
           onSetTokenPayFee={onSetTokenPayFee}
-          tokenSlug={currentTokenPayFee}
+          tokenSlug={currentTokenPayFee || assetValue}
           currentTokenPayFee={currentTokenPayFee}
         />
         {
