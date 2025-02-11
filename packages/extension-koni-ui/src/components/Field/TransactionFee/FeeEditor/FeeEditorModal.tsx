@@ -4,19 +4,18 @@
 import { EvmEIP1559FeeOption, FeeCustom, FeeDefaultOption, FeeDetail, FeeOptionKey, TransactionFee } from '@subwallet/extension-base/types';
 import { BN_ZERO } from '@subwallet/extension-base/utils';
 import { AmountInput, BasicInputEvent, RadioGroup } from '@subwallet/extension-koni-ui/components';
+import ChooseFeeTokenModal from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/ChooseFeeTokenModal';
 import { FeeOptionItem } from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/FeeOptionItem';
+import { CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { FormCallbacks, ThemeProps } from '@subwallet/extension-koni-ui/types';
-import {Button, Form, Icon, Input, Logo, ModalContext, Number, SwModal} from '@subwallet/react-ui';
+import { Button, Form, Icon, Input, Logo, ModalContext, Number, SwModal } from '@subwallet/react-ui';
 import { Rule } from '@subwallet/react-ui/es/form';
 import BigN from 'bignumber.js';
 import CN from 'classnames';
+import { PencilSimpleLine } from 'phosphor-react';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
-import {PencilSimpleLine} from "phosphor-react";
-import ChooseFeeTokenModal
-  from "@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/ChooseFeeTokenModal";
-import {CHOOSE_FEE_TOKEN_MODAL} from "@subwallet/extension-koni-ui/constants";
 
 type Props = ThemeProps & {
   modalId: string;
@@ -54,9 +53,9 @@ const OPTIONS: FeeDefaultOption[] = [
   'fast'
 ];
 
-const Component = ({ listTokensCanPayFee, currentTokenPayFee, className, decimals, onSetTokenPayFee, feeOptionsInfo, feeType, modalId, onSelectOption, priceValue, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
+const Component = ({ className, currentTokenPayFee, decimals, feeOptionsInfo, feeType, listTokensCanPayFee, modalId, onSelectOption, onSetTokenPayFee, priceValue, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
-  const { inactiveModal, activeModal } = useContext(ModalContext);
+  const { activeModal, inactiveModal } = useContext(ModalContext);
   const [currentViewMode, setViewMode] = useState<ViewMode>(ViewMode.RECOMMENDED);
   const [form] = Form.useForm<FormProps>();
 
@@ -234,152 +233,158 @@ const Component = ({ listTokensCanPayFee, currentTokenPayFee, className, decimal
 
   return (
     <>
-    <SwModal
-      className={CN(className)}
-      footer={(
-        <Button
-          block={true}
-          className={'__approve-button'}
-          onClick={form.submit}
-        >
+      <SwModal
+        className={CN(className)}
+        footer={(
+          <Button
+            block={true}
+            className={'__approve-button'}
+            onClick={form.submit}
+          >
           Approve
-        </Button>
-      )}
-      id={modalId}
-      onCancel={onCancelModal}
-      title={t('Choose fee')}
-    >
-      {feeType === 'evm' && (
-        <div className={'__switcher-box'}>
-          <RadioGroup
-            onChange={onChaneViewMode}
-            optionType='button'
-            options={viewOptions}
-            value={currentViewMode}
-          />
-        </div>
-      )}
-
-      <div className={'__fee-token-selector-area'}>
-        <div className={'__fee-token-selector-label'}>{t('Fee paid in')}</div>
-        <div
-          className={'__fee-paid-token'}
-        >
-          <Logo
-            className='token-logo'
-            isShowSubLogo={false}
-            shape='circle'
-            size={24}
-            token={tokenSlug.toLowerCase()}
-          />
-          <div className={'__fee-paid-token-symbol'}>{symbol}</div>
-          <div onClick={onClickEdit} className={'__edit-token'}>
-            <Icon
-              className={'__edit-icon'}
-              customSize={'20px'}
-              phosphorIcon={PencilSimpleLine}
+          </Button>
+        )}
+        id={modalId}
+        onCancel={onCancelModal}
+        title={t('Choose fee')}
+      >
+        {feeType === 'evm' && (
+          <div className={'__switcher-box'}>
+            <RadioGroup
+              onChange={onChaneViewMode}
+              optionType='button'
+              options={viewOptions}
+              value={currentViewMode}
             />
           </div>
+        )}
+
+        <div className={'__fee-token-selector-area'}>
+          <div className={'__fee-token-selector-label'}>{t('Fee paid in')}</div>
+          <div
+            className={'__fee-paid-token'}
+          >
+            <Logo
+              className='token-logo'
+              isShowSubLogo={false}
+              shape='circle'
+              size={24}
+              token={tokenSlug.toLowerCase()}
+            />
+            <div className={'__fee-paid-token-symbol'}>{symbol}</div>
+            {listTokensCanPayFee && listTokensCanPayFee?.length > 0
+              ? (
+                <div
+                  className={'__edit-token'}
+                  onClick={onClickEdit}
+                >
+                  <Icon
+                    className={'__edit-icon'}
+                    customSize={'20px'}
+                    phosphorIcon={PencilSimpleLine}
+                  />
+                </div>)
+              : undefined}
+          </div>
         </div>
-      </div>
 
-      {
-        currentViewMode === ViewMode.RECOMMENDED && (
-          <div className={'__fee-options-panel'}>
-            {OPTIONS.map(renderOption)}
-          </div>
-        )
-      }
+        {
+          currentViewMode === ViewMode.RECOMMENDED && (
+            <div className={'__fee-options-panel'}>
+              {OPTIONS.map(renderOption)}
+            </div>
+          )
+        }
 
-      {
-        currentViewMode === ViewMode.CUSTOM && (
-          <div className={'__custom-fee-panel'}>
-            <Form
-              form={form}
-              initialValues={formDefault}
-              onFinish={_onSelectCustomOption}
-              onValuesChange={onValuesChange}
-            >
-              {!(feeType === 'evm')
-                ? (
-                  <div className={'__custom-value-field-wrapper'}>
-                    <Number
-                      className={'__converted-custom-value'}
-                      decimal={decimals}
-                      prefix={'~ $'}
-                      value={transformAmount}
-                    />
-                    <Form.Item
-                      className={'__custom-value-field'}
-                      name={'customValue'}
-                      rules={[
-                        {
-                          validator: customValueValidator
-                        }
-                      ]}
-                      statusHelpAsTooltip={true}
-                    >
-                      <AmountInput
-                        decimals={decimals}
-                        disabled={decimals === 0}
-                        maxValue={'1'}
-                        showMaxButton={false}
-                        tooltip={t('Amount')}
+        {
+          currentViewMode === ViewMode.CUSTOM && (
+            <div className={'__custom-fee-panel'}>
+              <Form
+                form={form}
+                initialValues={formDefault}
+                onFinish={_onSelectCustomOption}
+                onValuesChange={onValuesChange}
+              >
+                {!(feeType === 'evm')
+                  ? (
+                    <div className={'__custom-value-field-wrapper'}>
+                      <Number
+                        className={'__converted-custom-value'}
+                        decimal={decimals}
+                        prefix={'~ $'}
+                        value={transformAmount}
                       />
-                    </Form.Item>
-                  </div>
+                      <Form.Item
+                        className={'__custom-value-field'}
+                        name={'customValue'}
+                        rules={[
+                          {
+                            validator: customValueValidator
+                          }
+                        ]}
+                        statusHelpAsTooltip={true}
+                      >
+                        <AmountInput
+                          decimals={decimals}
+                          disabled={decimals === 0}
+                          maxValue={'1'}
+                          showMaxButton={false}
+                          tooltip={t('Amount')}
+                        />
+                      </Form.Item>
+                    </div>
 
-                )
-                : (
-                  <div className={'__custom-value-field-wrapper'}>
-                    <Form.Item
-                      className={'__base-fee-value-field'}
-                      name={'maxFeeValue'}
-                      rules={[
-                        {
-                          validator: customMaxFeeValidator
-                        }
-                      ]}
-                      statusHelpAsTooltip={true}
-                    >
-                      <Input
-                        defaultValue={feeDefaultValue && feeDefaultValue.maxFeePerGas}
-                        label={'Max fee (GWEI)'}
-                        placeholder={'Enter fee value'}
-                        type={'number'}
-                      />
-                    </Form.Item>
-                    <Form.Item
-                      className={'__priority-fee-value-field'}
-                      name={'priorityFeeValue'}
-                      rules={[
-                        {
-                          validator: customPriorityValidator
-                        }
-                      ]}
-                      statusHelpAsTooltip={true}
-                    >
-                      <Input
-                        defaultValue={feeDefaultValue && feeDefaultValue.maxPriorityFeePerGas}
-                        label={'Priority fee (GWEI)'}
-                        placeholder={'Enter fee value'}
-                        type={'number'}
-                      />
-                    </Form.Item>
-                  </div>)}
+                  )
+                  : (
+                    <div className={'__custom-value-field-wrapper'}>
+                      <Form.Item
+                        className={'__base-fee-value-field'}
+                        name={'maxFeeValue'}
+                        rules={[
+                          {
+                            validator: customMaxFeeValidator
+                          }
+                        ]}
+                        statusHelpAsTooltip={true}
+                      >
+                        <Input
+                          defaultValue={feeDefaultValue && feeDefaultValue.maxFeePerGas}
+                          label={'Max fee (GWEI)'}
+                          placeholder={'Enter fee value'}
+                          type={'number'}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        className={'__priority-fee-value-field'}
+                        name={'priorityFeeValue'}
+                        rules={[
+                          {
+                            validator: customPriorityValidator
+                          }
+                        ]}
+                        statusHelpAsTooltip={true}
+                      >
+                        <Input
+                          defaultValue={feeDefaultValue && feeDefaultValue.maxPriorityFeePerGas}
+                          label={'Priority fee (GWEI)'}
+                          placeholder={'Enter fee value'}
+                          type={'number'}
+                        />
+                      </Form.Item>
+                    </div>)}
 
-            </Form>
-          </div>
-        )
-      }
-    </SwModal>
-  <ChooseFeeTokenModal
-    items={listTokensCanPayFee}
-    modalId={CHOOSE_FEE_TOKEN_MODAL}
-    onSetTokenPayFee={onSetTokenPayFee}
-    selectedItem={currentTokenPayFee}
-  />
-  </>
+              </Form>
+            </div>
+          )
+        }
+      </SwModal>
+      <ChooseFeeTokenModal
+        items={listTokensCanPayFee}
+        modalId={CHOOSE_FEE_TOKEN_MODAL}
+        onSetTokenPayFee={onSetTokenPayFee}
+        selectedItem={currentTokenPayFee}
+      />
+    </>
   );
 };
 

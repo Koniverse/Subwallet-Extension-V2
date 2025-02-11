@@ -51,7 +51,7 @@ export const getReserveForPath = async (api: ApiPromise, paths: _ChainAsset[]): 
 };
 
 export const estimateTokensForPool = (amount: string, reserves: [string, string]): string => {
-  if (amount === '0') {
+  if (!amount || amount === '0') {
     return '0';
   }
 

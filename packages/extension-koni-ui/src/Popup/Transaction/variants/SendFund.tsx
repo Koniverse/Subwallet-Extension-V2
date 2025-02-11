@@ -11,7 +11,7 @@ import { getAvailBridgeGatewayContract, getSnowBridgeGatewayContract } from '@su
 import { isAvailChainBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/availBridge';
 import { _isPolygonChainBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/polygonBridge';
 import { _isPosChainBridge, _isPosChainL2Bridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/posBridge';
-import { _getAssetDecimals, _getAssetName, _getAssetOriginChain, _getAssetSymbol, _getContractAddressOfToken, _getMultiChainAsset, _getOriginChainOfAsset, _getTokenMinAmount, _isChainEvmCompatible, _isNativeToken, _isTokenTransferredByEvm } from '@subwallet/extension-base/services/chain-service/utils';
+import { _getAssetDecimals, _getAssetName, _getAssetOriginChain, _getAssetSymbol, _getChainNativeTokenBasicInfo, _getChainNativeTokenSlug, _getContractAddressOfToken, _getMultiChainAsset, _getOriginChainOfAsset, _getTokenMinAmount, _isChainEvmCompatible, _isNativeToken, _isTokenTransferredByEvm } from '@subwallet/extension-base/services/chain-service/utils';
 import { TON_CHAINS } from '@subwallet/extension-base/services/earning-service/constants';
 import { SWTransactionResponse } from '@subwallet/extension-base/services/transaction-service/types';
 import { AccountChainType, AccountProxy, AccountProxyType, AccountSignMode, AnalyzedGroup, BasicTxWarningCode, TransactionFee } from '@subwallet/extension-base/types';
@@ -23,7 +23,7 @@ import { ADDRESS_INPUT_AUTO_FORMAT_VALUE } from '@subwallet/extension-koni-ui/co
 import { MktCampaignModalContext } from '@subwallet/extension-koni-ui/contexts/MktCampaignModalContext';
 import { useAlert, useDefaultNavigate, useFetchChainAssetInfo, useHandleSubmitMultiTransaction, useNotification, usePreCheckAction, useRestoreTransaction, useSelector, useSetCurrentPage, useTransactionContext, useWatchTransaction } from '@subwallet/extension-koni-ui/hooks';
 import useGetConfirmationByScreen from '@subwallet/extension-koni-ui/hooks/campaign/useGetConfirmationByScreen';
-import { approveSpending, cancelSubscription, getOptimalTransferProcess, getTokensCanPayFee, isTonBounceableAddress, makeCrossChainTransfer, makeTransfer, subscribeMaxTransfer } from '@subwallet/extension-koni-ui/messaging';
+import { approveSpending, cancelSubscription, getAmountForPair, getOptimalTransferProcess, getTokensCanPayFee, isTonBounceableAddress, makeCrossChainTransfer, makeTransfer, subscribeMaxTransfer } from '@subwallet/extension-koni-ui/messaging';
 import { CommonActionType, commonProcessReducer, DEFAULT_COMMON_PROCESS } from '@subwallet/extension-koni-ui/reducer';
 import { RootState } from '@subwallet/extension-koni-ui/stores';
 import { AccountAddressItemType, ChainItemType, FormCallbacks, Theme, ThemeProps, TransferParams } from '@subwallet/extension-koni-ui/types';
@@ -159,6 +159,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const { accountProxies, currentAccountProxy } = useSelector((state: RootState) => state.accountState);
   const [autoFormatValue] = useLocalStorage(ADDRESS_INPUT_AUTO_FORMAT_VALUE, false);
   const [listTokensCanPayFee, setListTokensCanPayFee] = useState<string[]>([]);
+  const [estimateFeeEditor, setEstimateFeeEditor] = useState<string>();
   const [currentTokenPayFee, setCurrentTokenPayFee] = useState<string>(assetValue);
 
   const [selectedTransactionFee, setSelectedTransactionFee] = useState<TransactionFee | undefined>();
@@ -875,6 +876,10 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   }, [accountAddressItems, addressInputCurrent, chainInfoMap, chainValue, disabledToAddressInput, form, fromValue]);
 
   useEffect(() => {
+    setCurrentTokenPayFee(assetValue);
+  }, [assetValue]);
+
+  useEffect(() => {
     const fetchTokens = async () => {
       try {
         const response = await getTokensCanPayFee({
@@ -888,8 +893,35 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       }
     };
 
-    fetchTokens();
+    fetchTokens().catch((error) => {
+      console.error('Unhandled error in fetchTokens:', error);
+    });
   }, [chainValue, currentAccountProxy?.id]);
+
+  useEffect(() => {
+    const chainInfo = chainInfoMap[chainValue];
+    const nativeTokenSlug = chainInfo && _getChainNativeTokenSlug(chainInfo);
+
+    if (currentTokenPayFee) {
+      const getEstimateFee = async () => {
+        try {
+          const response = await getAmountForPair({
+            tokenSlug2: currentTokenPayFee || assetValue,
+            tokenSlug1: nativeTokenSlug,
+            amount: transferAmountValue
+          });
+
+          setEstimateFeeEditor(response);
+        } catch (error) {
+          console.error('Error fetching tokens:', error);
+        }
+      };
+
+      getEstimateFee().catch((error) => {
+        console.error('Unhandled error in getEstimateFee:', error);
+      });
+    }
+  }, [assetValue, chainInfoMap, chainValue, currentTokenPayFee, transferAmountValue]);
 
   useRestoreTransaction(form);
 
@@ -1005,7 +1037,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         </Form>
 
         <FeeEditor
-          estimateFee={estimatedFee}
+          currentTokenPayFee={currentTokenPayFee}
+          estimateFee={estimateFeeEditor || estimatedFee}
           feeOptionsInfo={transferInfo?.feeOptions}
           feeType={transferInfo?.feeType}
           listTokensCanPayFee={listTokensCanPayFee}
@@ -1013,7 +1046,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           onSelect={setSelectedTransactionFee}
           onSetTokenPayFee={onSetTokenPayFee}
           tokenSlug={currentTokenPayFee || assetValue}
-          currentTokenPayFee={currentTokenPayFee}
         />
         {
           chainValue !== destChainValue && (
