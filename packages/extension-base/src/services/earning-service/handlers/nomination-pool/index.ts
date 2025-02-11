@@ -110,10 +110,9 @@ export default class NominationPoolHandler extends BasePoolHandler {
       const maxSupportedEras = substrateApi.api.consts.staking.historyDepth.toString();
       const erasPerDay = 24 / _STAKING_ERA_LENGTH_MAP[chainInfo.slug]; // Can be exactly calculate from epochDuration, blockTime, sessionsPerEra
 
-      const _supportedDays = getSupportedDaysByHistoryDepth(erasPerDay, parseInt(maxSupportedEras), parseInt(currentEra) / erasPerDay);
-      const supportedDays = Math.ceil(_supportedDays);
+      const supportedDays = getSupportedDaysByHistoryDepth(erasPerDay, parseInt(maxSupportedEras), parseInt(currentEra) / erasPerDay);
 
-      const startEra = parseInt(currentEra) - _supportedDays * erasPerDay;
+      const startEra = parseInt(currentEra) - supportedDays * erasPerDay;
 
       const [_maxPoolMember, _EraStakeInfo, _totalIssuance, _auctionCounter, _minPoolJoin, ..._eraReward] = await Promise.all([
         substrateApi.api.query.nominationPools?.maxPoolMembersPerPool(),
@@ -128,7 +127,7 @@ export default class NominationPoolHandler extends BasePoolHandler {
 
       const [_totalEraStake, _lastTotalStaked] = _EraStakeInfo;
 
-      const validatorEraReward = getAvgValidatorEraReward(_supportedDays, _eraReward[0]);
+      const validatorEraReward = getAvgValidatorEraReward(supportedDays, _eraReward[0]);
       const lastTotalStaked = _lastTotalStaked.toString();
       const rawTotalEraStake = _totalEraStake.toString();
       const rawTotalIssuance = _totalIssuance.toString();
