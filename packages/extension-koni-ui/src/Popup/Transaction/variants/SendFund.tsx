@@ -23,7 +23,7 @@ import { ADDRESS_INPUT_AUTO_FORMAT_VALUE } from '@subwallet/extension-koni-ui/co
 import { MktCampaignModalContext } from '@subwallet/extension-koni-ui/contexts/MktCampaignModalContext';
 import { useAlert, useDefaultNavigate, useFetchChainAssetInfo, useHandleSubmitMultiTransaction, useNotification, usePreCheckAction, useRestoreTransaction, useSelector, useSetCurrentPage, useTransactionContext, useWatchTransaction } from '@subwallet/extension-koni-ui/hooks';
 import useGetConfirmationByScreen from '@subwallet/extension-koni-ui/hooks/campaign/useGetConfirmationByScreen';
-import { approveSpending, cancelSubscription, getTokensCanPayFee, getOptimalTransferProcess, isTonBounceableAddress, makeCrossChainTransfer, makeTransfer, subscribeMaxTransfer } from '@subwallet/extension-koni-ui/messaging';
+import { approveSpending, cancelSubscription, getOptimalTransferProcess, getTokensCanPayFee, isTonBounceableAddress, makeCrossChainTransfer, makeTransfer, subscribeMaxTransfer } from '@subwallet/extension-koni-ui/messaging';
 import { CommonActionType, commonProcessReducer, DEFAULT_COMMON_PROCESS } from '@subwallet/extension-koni-ui/reducer';
 import { RootState } from '@subwallet/extension-koni-ui/stores';
 import { AccountAddressItemType, ChainItemType, FormCallbacks, Theme, ThemeProps, TransferParams } from '@subwallet/extension-koni-ui/types';
@@ -156,7 +156,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const { chainInfoMap, chainStateMap, chainStatusMap, ledgerGenericAllowNetworks } = useSelector((root) => root.chainStore);
   const { assetRegistry, xcmRefMap } = useSelector((root) => root.assetRegistry);
   const { accounts } = useSelector((state: RootState) => state.accountState);
-  const {accountProxies, currentAccountProxy} = useSelector((state: RootState) => state.accountState);
+  const { accountProxies, currentAccountProxy } = useSelector((state: RootState) => state.accountState);
   const [autoFormatValue] = useLocalStorage(ADDRESS_INPUT_AUTO_FORMAT_VALUE, false);
   const [listTokensCanPayFee, setListTokensCanPayFee] = useState<string[]>([]);
   const [currentTokenPayFee, setCurrentTokenPayFee] = useState<string>('');
@@ -164,9 +164,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const [selectedTransactionFee, setSelectedTransactionFee] = useState<TransactionFee | undefined>();
   const { getCurrentConfirmation, renderConfirmationButtons } = useGetConfirmationByScreen('send-fund');
   const checkAction = usePreCheckAction(fromValue, true, detectTranslate('The account you are using is {{accountTitle}}, you cannot send assets with it'));
-
-  // todo: remove after test
-  console.log('currentAccountProxy', currentAccountProxy?.id);
 
   const currentConfirmation = useMemo(() => {
     if (chainValue && destChainValue) {
@@ -207,8 +204,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
   const chainStatus = useMemo(() => chainStatusMap[chainValue]?.connectionStatus, [chainValue, chainStatusMap]);
   const estimatedFee = useMemo((): string => transferInfo?.feeOptions.estimatedFee || '0', [transferInfo]);
-
-  console.log('transferInfo', transferInfo);
 
   const [processState, dispatchProcessState] = useReducer(commonProcessReducer, DEFAULT_COMMON_PROCESS);
 
@@ -471,7 +466,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        tokenPayFeeSlug: currentTokenPayFee // todo: remove after test
+        tokenPayFeeSlug: currentTokenPayFee
       });
     } else {
       // Make cross chain transfer
@@ -486,7 +481,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        tokenPayFeeSlug: currentTokenPayFee // todo: remove after test
+        tokenPayFeeSlug: currentTokenPayFee
       });
     }
 
@@ -578,7 +573,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const onSetTokenPayFee = useCallback((slug: string) => {
     setCurrentTokenPayFee(slug);
   }, [setCurrentTokenPayFee]);
-
 
   const onSubmit: FormCallbacks<TransferParams>['onFinish'] = useCallback((values: TransferParams) => {
     const options: TransferOptions = {
@@ -885,8 +879,9 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       try {
         const response = await getTokensCanPayFee({
           chain: chainValue,
-          proxyId: currentAccountProxy?.id || '',
+          proxyId: currentAccountProxy?.id || ''
         });
+
         setListTokensCanPayFee(response);
       } catch (error) {
         console.error('Error fetching tokens:', error);
@@ -1013,11 +1008,11 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           estimateFee={estimatedFee}
           feeOptionsInfo={transferInfo?.feeOptions}
           feeType={transferInfo?.feeType}
+          listTokensCanPayFee={listTokensCanPayFee}
           loading={loading}
           onSelect={setSelectedTransactionFee}
-          tokenSlug={assetValue}
-          listTokensCanPayFee={listTokensCanPayFee}
           onSetTokenPayFee={onSetTokenPayFee}
+          tokenSlug={assetValue}
         />
         {
           chainValue !== destChainValue && (
