@@ -159,8 +159,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const { accountProxies, currentAccountProxy } = useSelector((state: RootState) => state.accountState);
   const [autoFormatValue] = useLocalStorage(ADDRESS_INPUT_AUTO_FORMAT_VALUE, false);
   const [listTokensCanPayFee, setListTokensCanPayFee] = useState<string[]>([]);
-  const [estimateFeeEditor, setEstimateFeeEditor] = useState<string>();
-  const [currentTokenPayFee, setCurrentTokenPayFee] = useState<string>(assetValue);
+  const [estimateFeeEditor, setEstimateFeeEditor] = useState<string|undefined>(undefined);
+  const [currentTokenPayFee, setCurrentTokenPayFee] = useState<string | undefined>(undefined);
 
   const [selectedTransactionFee, setSelectedTransactionFee] = useState<TransactionFee | undefined>();
   const { getCurrentConfirmation, renderConfirmationButtons } = useGetConfirmationByScreen('send-fund');
@@ -375,6 +375,9 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         setAddressInputRenderKey(`${defaultAddressInputRenderKey}-${Date.now()}`);
         setIsTransferAll(false);
         setForceUpdateMaxValue(undefined);
+
+        setCurrentTokenPayFee(undefined);
+        setEstimateFeeEditor(undefined);
       }
 
       if (part.destChain || part.chain || part.value || part.asset) {
@@ -874,10 +877,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       form.setFieldValue('to', fromValue);
     }
   }, [accountAddressItems, addressInputCurrent, chainInfoMap, chainValue, disabledToAddressInput, form, fromValue]);
-
-  useEffect(() => {
-    setCurrentTokenPayFee(assetValue);
-  }, [assetValue]);
 
   useEffect(() => {
     const fetchTokens = async () => {
