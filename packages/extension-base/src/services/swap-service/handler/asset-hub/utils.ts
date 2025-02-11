@@ -97,7 +97,7 @@ export const estimateActualRate = (amount: string, reserves: Array<[string, stri
   return result.toString();
 };
 
-export const estimateRateAfter = (amount: string, reserves: Array<[string, string]>): string => {
+export const estimateRateAfterForPath = (amount: string, reserves: Array<[string, string]>): string => {
   const m = new BigN(amount);
 
   const reserve = reserves[0];
