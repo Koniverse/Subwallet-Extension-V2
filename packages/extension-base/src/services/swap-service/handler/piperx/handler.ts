@@ -62,7 +62,6 @@ export class PiperXSwapHandler implements SwapBaseInterface {
 
     const fromContract = _getContractAddressOfToken(fromAsset) || WIP_ADDRESS;
     const toContract = _getContractAddressOfToken(toAsset) || WIP_ADDRESS;
-
     const fromAssetDecimal = _getAssetDecimals(fromAsset);
     const toAssetDecimal = _getAssetDecimals(toAsset);
     // const earlyValidation = await this.validateSwapRequest(request);
@@ -80,14 +79,13 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     const defaultFeeToken = _isNativeToken(fromAsset) ? fromAsset.slug : fromChainNativeTokenSlug;
     const toAmount = (await v2GetPrice(fromContract, toContract, evmApi) * multiple * (10 ** fromAssetDecimal));
 
-    console.log('toAmount', toAmount.toString());
+    const v2Router = await v2RoutingExactInput(fromContract, toContract, BigInt(request.fromAmount), evmApi);
+
     const networkFee: CommonFeeComponent = {
       tokenSlug: fromChainNativeTokenSlug,
       amount: '1',
       feeType: SwapFeeType.NETWORK_FEE
     };
-
-    const metadata = [fromContract, toContract];
 
     try {
       return {
@@ -102,7 +100,7 @@ export class PiperXSwapHandler implements SwapBaseInterface {
           defaultFeeToken,
           feeOptions: [defaultFeeToken]
         },
-        metadata: metadata,
+        metadata: v2Router.bestRoute,
         route: {
           path: [fromAsset.slug, toAsset.slug]
         }
@@ -182,8 +180,9 @@ export class PiperXSwapHandler implements SwapBaseInterface {
   public async handleSubmitStep (params: SwapSubmitParams): Promise<SwapSubmitStepData> {
     const fromAsset = this.chainService.getAssetBySlug(params.quote.pair.from);
     const evmApi = this.chainService.getEvmApi(fromAsset.originChain);
-    let extrinsic: SubmittableExtrinsic;
+    let extrinsic;
 
+    console.log('params', params.quote);
     const txData: SwapBaseTxData = {
       address: params.address,
       provider: this.providerInfo,
@@ -193,11 +192,17 @@ export class PiperXSwapHandler implements SwapBaseInterface {
       process: params.process
     };
     const fromAmount = BigInt(params.quote.fromAmount);
-    const { bestRoute, maxAmountOut } = v2RoutingExactInput(params.quote.metadata.fromContract, params.quote.metadata.toContract, fromAmount, evmApi);
+    const toAmount = params.quote.toAmount;
+    const scaleFactor = 1e18;
+    const toAmountScaled = Math.floor(Number(toAmount) * scaleFactor);
+    const toAmountBigInt = BigInt(toAmountScaled);
 
-    console.log('bestRoute', bestRoute);
+    const slippageBigInt = BigInt(Math.floor(params.slippage * 10000));
+    const minReceive = (toAmountBigInt * (10000n - slippageBigInt)) / (10000n * BigInt(scaleFactor));
 
-    extrinsic = v2Swap(fromAmount, fromAmount, bestRoute, params.address, BigInt(300000), evmApi);
+    console.log('minReceive', [toAmount, minReceive]);
+
+    extrinsic = v2Swap(fromAmount, minReceive, params.quote.metadata, params.address, BigInt(3000000000), evmApi);
 
     return {
       txChain: fromAsset.originChain,

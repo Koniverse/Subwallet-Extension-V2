@@ -3,6 +3,8 @@
 
 import { getWeb3Contract } from '@subwallet/extension-base/koni/api/contract-handler/evm/web3';
 import { EvmApi } from '@subwallet/extension-base/services/chain-service/handler/EvmApi';
+import { calculateGasFeeParams } from '@subwallet/extension-base/services/fee-service/utils';
+import { TransactionConfig } from 'web3-core';
 
 import { defaultTokens, fee2TickSpace, multicallAddress, piperv3FactoryAddress, piperv3QuoterAddress, v2ComputeAddress, v2RouterAddress, WIP_ADDRESS } from './constant';
 import { multicallAbi, piperv3FactoryAbi, piperv3PoolAbi, piperv3QuoterAbi, v2PoolAbi, v2RouterAbi } from './piperx_abi';
@@ -145,9 +147,7 @@ export const v2RoutingExactInput = async (
   let maxAmountOut = BigInt(0);
 
   try {
-    if (!evmApi.api.utils.isAddress(tokenIn) || !evmApi.api.utils.isAddress(tokenOut)) {
-      throw new Error('Invalid token address');
-    }
+    console.log('tokenIn', [tokenIn, tokenOut]);
 
     const v2RouterContract = getWeb3Contract(v2RouterAddress, evmApi, v2RouterAbi);
 
@@ -241,53 +241,55 @@ export const v2Swap = async (
   try {
     const router = getWeb3Contract(v2RouterAddress, evmApi, v2RouterAbi);
 
-    console.log('path', [path, path[0]]);
+    let call;
+    let gasLimit;
 
-    // Get current gas price and add 20% to ensure faster processing
-    const gasPrice = await evmApi.api.eth.getGasPrice();
-    const adjustedGasPrice = (BigInt(gasPrice) * BigInt(120)) / BigInt(100);
-
-    const txOptions = {
-      gasPrice: adjustedGasPrice,
-      ...(customGasLimit ? { gasLimit: customGasLimit } : {}) // Only include gasLimit if custom value provided
-    };
-
-    let tx;
-
-    if (path[0] == WIP_ADDRESS) {
-      tx = await router.methods.swapExactETHForTokens(
-        amount2Min,
+    if (path[0] === WIP_ADDRESS) {
+      // ETH -> Tokens swap
+      call = router.methods.swapExactETHForTokens(
+        amount2Min.toString(),
         path,
         address,
-        expirationTimestamp,
-        {
-          ...txOptions,
-          value: amount1
-        }
+        expirationTimestamp.toString()
       );
-    } else if (path[path.length - 1] == WIP_ADDRESS) {
-      tx = await router.methods.swapExactTokensForETH(
-        amount1,
-        amount2Min,
+    } else if (path[path.length - 1] === WIP_ADDRESS) {
+      // Token -> ETH swap
+      call = router.methods.swapExactTokensForETH(
+        amount1.toString(),
+        amount2Min.toString(),
         path,
         address,
-        expirationTimestamp,
-        txOptions
+        expirationTimestamp.toString()
       );
     } else {
-      tx = await router.methods.swapExactTokensForTokens(
-        amount1,
-        amount2Min,
+      // Token -> Token swap
+      call = router.methods.swapExactTokensForTokens(
+        amount1.toString(),
+        amount2Min.toString(),
         path,
         address,
-        expirationTimestamp,
-        txOptions
+        expirationTimestamp.toString()
       );
     }
 
-    console.log('Transaction submitted:', tx.hash);
+    const encodedCall = call.encodeABI();
 
-    return tx.wait();
+    gasLimit = await call.estimateGas().catch(() => 5000000);
+
+    const priority = await calculateGasFeeParams(evmApi, evmApi.chainSlug);
+    const txConfig: TransactionConfig = {
+      from: address,
+      to: v2RouterAddress.toLowerCase(),
+      value: path[0] === WIP_ADDRESS ? amount1.toString() : '0',
+      data: encodedCall,
+      gas: gasLimit,
+      maxFeePerGas: priority.maxFeePerGas?.toString(),
+      maxPriorityFeePerGas: priority.maxPriorityFeePerGas?.toString()
+    };
+
+    console.log('transactionconfig', txConfig);
+
+    return txConfig;
   } catch (error) {
     console.error('Error in swap:', error);
     throw error;
