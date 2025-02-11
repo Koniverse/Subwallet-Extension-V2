@@ -6,13 +6,17 @@ import { BN_ZERO } from '@subwallet/extension-base/utils';
 import { AmountInput, BasicInputEvent, RadioGroup } from '@subwallet/extension-koni-ui/components';
 import { FeeOptionItem } from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/FeeOptionItem';
 import { FormCallbacks, ThemeProps } from '@subwallet/extension-koni-ui/types';
-import { Button, Form, Input, Logo, ModalContext, Number, SwModal } from '@subwallet/react-ui';
+import {Button, Form, Icon, Input, Logo, ModalContext, Number, SwModal} from '@subwallet/react-ui';
 import { Rule } from '@subwallet/react-ui/es/form';
 import BigN from 'bignumber.js';
 import CN from 'classnames';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
+import {PencilSimpleLine} from "phosphor-react";
+import ChooseFeeTokenModal
+  from "@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/ChooseFeeTokenModal";
+import {CHOOSE_FEE_TOKEN_MODAL} from "@subwallet/extension-koni-ui/constants";
 
 type Props = ThemeProps & {
   modalId: string;
@@ -23,7 +27,9 @@ type Props = ThemeProps & {
   tokenSlug: string;
   priceValue: number;
   feeType?: string;
-};
+  listTokensCanPayFee?: string[];
+  onSetTokenPayFee?: (token: string) => void
+}
 
 enum ViewMode {
   RECOMMENDED = 'recommended',
@@ -47,11 +53,10 @@ const OPTIONS: FeeDefaultOption[] = [
   'fast'
 ];
 
-const Component = ({ className, decimals, feeOptionsInfo, feeType, modalId, onSelectOption, priceValue, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
+const Component = ({ listTokensCanPayFee, className, decimals, onSetTokenPayFee, feeOptionsInfo, feeType, modalId, onSelectOption, priceValue, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
-  const { inactiveModal } = useContext(ModalContext);
+  const { inactiveModal, activeModal } = useContext(ModalContext);
   const [currentViewMode, setViewMode] = useState<ViewMode>(ViewMode.RECOMMENDED);
-
   const [form] = Form.useForm<FormProps>();
 
   useEffect(() => {
@@ -188,6 +193,12 @@ const Component = ({ className, decimals, feeOptionsInfo, feeType, modalId, onSe
     return Promise.resolve();
   }, [t]);
 
+
+  // const onSelectTokenPayFee = useCallback((slug: string) => {
+  //   console.log('setCurrentTokenPayFee sđ', slug);
+  //   onSetTokenPayFee?.(slug);
+  // }, []);
+
   const customMaxFeeValidator = useCallback((rule: Rule, value: string): Promise<void> => {
     if (!value) {
       return Promise.reject(t('Please enter the maximum fee.'));
@@ -220,7 +231,14 @@ const Component = ({ className, decimals, feeOptionsInfo, feeType, modalId, onSe
     [form]
   );
 
+  const onClickEdit = useCallback(() => {
+    setTimeout(() => {
+      activeModal(CHOOSE_FEE_TOKEN_MODAL);
+    }, 100);
+  }, [activeModal]);
+
   return (
+    <>
     <SwModal
       className={CN(className)}
       footer={(
@@ -234,7 +252,8 @@ const Component = ({ className, decimals, feeOptionsInfo, feeType, modalId, onSe
       )}
       id={modalId}
       onCancel={onCancelModal}
-      title={t('Choose fee')}
+      title={t('Choose fee 1')}
+      // title={t('Choose fee 1')}
     >
       {feeType === 'evm' && (
         <div className={'__switcher-box'}>
@@ -260,6 +279,13 @@ const Component = ({ className, decimals, feeOptionsInfo, feeType, modalId, onSe
             token={tokenSlug.toLowerCase()}
           />
           <div className={'__fee-paid-token-symbol'}>{symbol}</div>
+          <div onClick={onClickEdit} className={'__edit-token'}>
+            <Icon
+              className={'__edit-icon'}
+              customSize={'20px'}
+              phosphorIcon={PencilSimpleLine}
+            />
+          </div>
         </div>
       </div>
 
@@ -353,6 +379,12 @@ const Component = ({ className, decimals, feeOptionsInfo, feeType, modalId, onSe
         )
       }
     </SwModal>
+  <ChooseFeeTokenModal
+    items={listTokensCanPayFee}
+    modalId={CHOOSE_FEE_TOKEN_MODAL}
+    onSetTokenPayFee={onSetTokenPayFee}
+  />
+  </>
   );
 };
 
@@ -392,6 +424,11 @@ export const FeeEditorModal = styled(Component)<Props>(({ theme: { token } }: Pr
     '.__fee-paid-token-symbol': {
       paddingLeft: 8,
       color: token.colorWhite
+    },
+
+    '.__edit-token': {
+      paddingLeft: 4,
+      cursor: 'pointer'
     },
 
     '.__fee-token-selector-label': {

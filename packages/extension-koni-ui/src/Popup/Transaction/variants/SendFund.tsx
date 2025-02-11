@@ -156,24 +156,17 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const { chainInfoMap, chainStateMap, chainStatusMap, ledgerGenericAllowNetworks } = useSelector((root) => root.chainStore);
   const { assetRegistry, xcmRefMap } = useSelector((root) => root.assetRegistry);
   const { accounts } = useSelector((state: RootState) => state.accountState);
-  const accountProxies = useSelector((state: RootState) => state.accountState.accountProxies);
+  const {accountProxies, currentAccountProxy} = useSelector((state: RootState) => state.accountState);
   const [autoFormatValue] = useLocalStorage(ADDRESS_INPUT_AUTO_FORMAT_VALUE, false);
+  const [listTokensCanPayFee, setListTokensCanPayFee] = useState<string[]>([]);
+  const [currentTokenPayFee, setCurrentTokenPayFee] = useState<string>('');
 
   const [selectedTransactionFee, setSelectedTransactionFee] = useState<TransactionFee | undefined>();
   const { getCurrentConfirmation, renderConfirmationButtons } = useGetConfirmationByScreen('send-fund');
   const checkAction = usePreCheckAction(fromValue, true, detectTranslate('The account you are using is {{accountTitle}}, you cannot send assets with it'));
 
   // todo: remove after test
-  const { currentAccountProxy } = useSelector((state: RootState) => state.accountState);
-
-  console.log('currentAccountProxy', currentAccountProxy.id);
-  getTokensCanPayFee({
-    chain: chainValue,
-    proxyId: currentAccountProxy?.id || '',
-    feeAmount: '999999999999'
-  }).then((rs) => {
-    console.log('rs', rs);
-  });
+  console.log('currentAccountProxy', currentAccountProxy?.id);
 
   const currentConfirmation = useMemo(() => {
     if (chainValue && destChainValue) {
@@ -478,7 +471,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        tokenPayFeeSlug: 'statemint-LOCAL-USDt' // todo: remove after test
+        tokenPayFeeSlug: currentTokenPayFee // todo: remove after test
       });
     } else {
       // Make cross chain transfer
@@ -493,12 +486,12 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        tokenPayFeeSlug: 'statemint-LOCAL-USDt' // todo: remove after test
+        tokenPayFeeSlug: currentTokenPayFee // todo: remove after test
       });
     }
 
     return sendPromise;
-  }, [selectedTransactionFee]);
+  }, [selectedTransactionFee, currentTokenPayFee]);
 
   // todo: must refactor later, temporary solution to support SnowBridge
   const handleBridgeSpendingApproval = useCallback((values: TransferParams): Promise<SWTransactionResponse> => {
@@ -581,6 +574,11 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       setIsTransferAll(value);
     }
   }, [transferInfo?.maxTransferable]);
+
+  const onSetTokenPayFee = useCallback((slug: string) => {
+    setCurrentTokenPayFee(slug);
+  }, [setCurrentTokenPayFee]);
+
 
   const onSubmit: FormCallbacks<TransferParams>['onFinish'] = useCallback((values: TransferParams) => {
     const options: TransferOptions = {
@@ -882,6 +880,22 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     }
   }, [accountAddressItems, addressInputCurrent, chainInfoMap, chainValue, disabledToAddressInput, form, fromValue]);
 
+  useEffect(() => {
+    const fetchTokens = async () => {
+      try {
+        const response = await getTokensCanPayFee({
+          chain: chainValue,
+          proxyId: currentAccountProxy?.id || '',
+        });
+        setListTokensCanPayFee(response);
+      } catch (error) {
+        console.error('Error fetching tokens:', error);
+      }
+    };
+
+    fetchTokens();
+  }, [chainValue, currentAccountProxy?.id]);
+
   useRestoreTransaction(form);
 
   return (
@@ -1002,6 +1016,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           loading={loading}
           onSelect={setSelectedTransactionFee}
           tokenSlug={assetValue}
+          listTokensCanPayFee={listTokensCanPayFee}
+          onSetTokenPayFee={onSetTokenPayFee}
         />
         {
           chainValue !== destChainValue && (
