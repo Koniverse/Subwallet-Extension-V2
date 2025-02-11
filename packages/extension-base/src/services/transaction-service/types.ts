@@ -50,7 +50,9 @@ export interface SWTransactionInput extends SwInputBase, Partial<Pick<SWTransact
   skipFeeValidation?: boolean;
 }
 
-export type SWTransactionResponse = SwInputBase & Pick<SWTransaction, 'warnings' | 'errors'> & Partial<Pick<SWTransaction, 'id' | 'extrinsicHash' | 'status' | 'estimateFee'>>;
+export type SWTransactionResponse = SwInputBase & Pick<SWTransaction, 'warnings' | 'errors'> & Partial<Pick<SWTransaction, 'id' | 'extrinsicHash' | 'status' | 'estimateFee'>> & {
+  processId?: string;
+};
 
 export type ValidateTransactionResponseInput = SWTransactionInput;
 
@@ -58,6 +60,7 @@ export type TransactionEmitter = EventEmitter<TransactionEventMap>;
 
 export interface TransactionEventResponse extends ValidateTransactionResponse {
   id: string,
+  processId?: string,
   extrinsicHash?: string,
   blockHash?: string
   blockNumber?: number,

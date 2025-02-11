@@ -96,7 +96,8 @@ export default class TransactionService {
       ...transactionInput,
       status: undefined,
       errors: transactionInput.errors || [],
-      warnings: transactionInput.warnings || []
+      warnings: transactionInput.warnings || [],
+      processId: transactionInput.step?.processId
     };
     const { additionalValidator, address, chain, extrinsicType } = validationResponse;
     const chainInfo = this.state.chainService.getChainInfoByKey(chain);
@@ -884,7 +885,7 @@ export default class TransactionService {
     return ethers.Transaction.from(txObject).unsignedSerialized as HexString;
   }
 
-  private async signAndSendEvmTransaction ({ address, chain, id, isPassConfirmation, transaction, url }: SWTransaction): Promise<TransactionEmitter> {
+  private async signAndSendEvmTransaction ({ address, chain, id, isPassConfirmation, step, transaction, url }: SWTransaction): Promise<TransactionEmitter> {
     const payload = (transaction as EvmSendTransactionRequest);
     const evmApi = this.state.chainService.getEvmApi(chain);
     const chainInfo = this.state.chainService.getChainInfoByKey(chain);
@@ -966,7 +967,8 @@ export default class TransactionService {
       id,
       errors: [],
       warnings: [],
-      extrinsicHash: id
+      extrinsicHash: id,
+      processId: step?.processId
     };
 
     if (isInjected) {
@@ -1113,13 +1115,14 @@ export default class TransactionService {
     return emitter;
   }
 
-  private signAndSendSubstrateTransaction ({ address, chain, id, signAfterCreate, transaction, url }: SWTransaction): TransactionEmitter {
+  private signAndSendSubstrateTransaction ({ address, chain, id, signAfterCreate, step, transaction, url }: SWTransaction): TransactionEmitter {
     const emitter = new EventEmitter<TransactionEventMap>();
     const eventData: TransactionEventResponse = {
       id,
       errors: [],
       warnings: [],
-      extrinsicHash: id
+      extrinsicHash: id,
+      processId: step?.processId
     };
 
     const extrinsic = transaction as SubmittableExtrinsic;
@@ -1206,14 +1209,15 @@ export default class TransactionService {
     return emitter;
   }
 
-  private signAndSendTonTransaction ({ address, chain, extrinsicType, id, transaction, url }: SWTransaction): TransactionEmitter {
+  private signAndSendTonTransaction ({ address, chain, extrinsicType, id, step, transaction, url }: SWTransaction): TransactionEmitter {
     const walletContract = keyring.getPair(address).ton.currentContract;
     const emitter = new EventEmitter<TransactionEventMap>();
     const eventData: TransactionEventResponse = {
       id,
       errors: [],
       warnings: [],
-      extrinsicHash: id
+      extrinsicHash: id,
+      processId: step?.processId
     };
 
     const payload = transaction as TonTransactionConfig;
