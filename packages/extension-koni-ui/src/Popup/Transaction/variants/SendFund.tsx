@@ -159,7 +159,9 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const { accountProxies, currentAccountProxy } = useSelector((state: RootState) => state.accountState);
   const [autoFormatValue] = useLocalStorage(ADDRESS_INPUT_AUTO_FORMAT_VALUE, false);
   const [listTokensCanPayFee, setListTokensCanPayFee] = useState<string[]>([]);
-  const [estimateFeeEditor, setEstimateFeeEditor] = useState<string|undefined>(undefined);
+
+  // TODO: Should manage the states `tokenPayFeeAmount` and `currentTokenPayFee` together.
+  const [tokenPayFeeAmount, setTokenPayFeeAmount] = useState<string|undefined>(undefined);
   const [currentTokenPayFee, setCurrentTokenPayFee] = useState<string | undefined>(undefined);
 
   const [selectedTransactionFee, setSelectedTransactionFee] = useState<TransactionFee | undefined>();
@@ -377,7 +379,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         setForceUpdateMaxValue(undefined);
 
         setCurrentTokenPayFee(undefined);
-        setEstimateFeeEditor(undefined);
+        setTokenPayFeeAmount(undefined);
       }
 
       if (part.destChain || part.chain || part.value || part.asset) {
@@ -905,12 +907,12 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       const getEstimateFee = async () => {
         try {
           const response = await getAmountForPair({
-            tokenSlug2: currentTokenPayFee || assetValue,
+            tokenSlug2: currentTokenPayFee,
             tokenSlug1: nativeTokenSlug,
-            amount: transferAmountValue
+            amount: estimatedFee
           });
 
-          setEstimateFeeEditor(response);
+          setTokenPayFeeAmount(response);
         } catch (error) {
           console.error('Error fetching tokens:', error);
         }
@@ -920,7 +922,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         console.error('Unhandled error in getEstimateFee:', error);
       });
     }
-  }, [assetValue, chainInfoMap, chainValue, currentTokenPayFee, transferAmountValue]);
+  }, [chainInfoMap, chainValue, currentTokenPayFee, estimatedFee]);
 
   useRestoreTransaction(form);
 
@@ -1037,7 +1039,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
 
         <FeeEditor
           currentTokenPayFee={currentTokenPayFee}
-          estimateFee={estimateFeeEditor || estimatedFee}
+          estimateFee={tokenPayFeeAmount || estimatedFee}
           feeOptionsInfo={transferInfo?.feeOptions}
           feeType={transferInfo?.feeType}
           listTokensCanPayFee={listTokensCanPayFee}
