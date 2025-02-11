@@ -4,19 +4,16 @@
 import { SwapError } from '@subwallet/extension-base/background/errors/SwapError';
 import { TransactionError } from '@subwallet/extension-base/background/errors/TransactionError';
 import { ChainType, ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
-import { _getSimpleSwapEarlyValidationError } from '@subwallet/extension-base/core/logic-validation';
 import { BalanceService } from '@subwallet/extension-base/services/balance-service';
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
-import { _getAssetDecimals, _getChainNativeTokenSlug, _getContractAddressOfToken, _isNativeToken } from '@subwallet/extension-base/services/chain-service/utils';
-import { BaseStepDetail, BasicTxErrorType, CommonFeeComponent, CommonOptimalPath, CommonStepFeeInfo, CommonStepType, OptimalSwapPathParams, SimpleSwapValidationMetadata, SwapBaseTxData, SwapEarlyValidation, SwapErrorType, SwapFeeType, SwapProviderId, SwapQuote, SwapRequest, SwapStepType, SwapSubmitParams, SwapSubmitStepData, ValidateSwapProcessParams } from '@subwallet/extension-base/types';
-import { formatNumber } from '@subwallet/extension-base/utils';
-
-import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
+import { _getChainNativeTokenSlug, _getContractAddressOfToken, _isNativeToken } from '@subwallet/extension-base/services/chain-service/utils';
+import { BaseStepDetail, BasicTxErrorType, CommonFeeComponent, CommonOptimalPath, CommonStepFeeInfo, CommonStepType, OptimalSwapPathParams, SwapBaseTxData, SwapEarlyValidation, SwapErrorType, SwapFeeType, SwapProviderId, SwapQuote, SwapRequest, SwapStepType, SwapSubmitParams, SwapSubmitStepData, ValidateSwapProcessParams } from '@subwallet/extension-base/types';
 
 import { calculateSwapRate, SWAP_QUOTE_TIMEOUT_MAP } from '../../utils';
 import { SwapBaseHandler, SwapBaseInterface } from '../base-handler';
 import { WIP_ADDRESS } from './constant';
 import { v2GetPrice, v2RoutingExactInput, v2Swap } from './core';
+import BigNumber from "bignumber.js";
 
 export class PiperXSwapHandler implements SwapBaseInterface {
   private swapBaseHandler: SwapBaseHandler;
@@ -32,6 +29,7 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     this.providerSlug = SwapProviderId.PIPERX;
   }
 
+  // todo
   validateSwapRequest: (request: SwapRequest) => Promise<SwapEarlyValidation>;
 
   get chainService () {
@@ -59,31 +57,21 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     const toAsset = this.chainService.getAssetBySlug(request.pair.to);
     const fromChain = this.chainService.getChainInfoByKey(fromAsset.originChain);
     const fromChainNativeTokenSlug = _getChainNativeTokenSlug(fromChain);
+    const evmApi = this.chainService.getEvmApi(fromAsset.originChain);
 
     const fromContract = _getContractAddressOfToken(fromAsset) || WIP_ADDRESS;
     const toContract = _getContractAddressOfToken(toAsset) || WIP_ADDRESS;
-    const fromAssetDecimal = _getAssetDecimals(fromAsset);
-    const toAssetDecimal = _getAssetDecimals(toAsset);
-    // const earlyValidation = await this.validateSwapRequest(request);
 
-    // if (earlyValidation.error) {
-    //   const metadata = earlyValidation.metadata as SimpleSwapValidationMetadata;
-
-    //   return _getSimpleSwapEarlyValidationError(earlyValidation.error, metadata);
-    // }
-
-    const multiple = formatNumber(request.fromAmount, fromAssetDecimal);
-
-    const evmApi = this.chainService.getEvmApi(fromAsset.originChain);
+    const bnFromAmount = new BigNumber(request.fromAmount);
 
     const defaultFeeToken = _isNativeToken(fromAsset) ? fromAsset.slug : fromChainNativeTokenSlug;
-    const toAmount = (await v2GetPrice(fromContract, toContract, evmApi) * multiple * (10 ** fromAssetDecimal));
-
+    const v2Price = await v2GetPrice(fromContract, toContract, evmApi);
+    const bnToAmount = bnFromAmount.multipliedBy(v2Price).decimalPlaces(0);
     const v2Router = await v2RoutingExactInput(fromContract, toContract, BigInt(request.fromAmount), evmApi);
 
     const networkFee: CommonFeeComponent = {
       tokenSlug: fromChainNativeTokenSlug,
-      amount: '1',
+      amount: '1', // todo
       feeType: SwapFeeType.NETWORK_FEE
     };
 
@@ -91,8 +79,8 @@ export class PiperXSwapHandler implements SwapBaseInterface {
       return {
         pair: request.pair,
         fromAmount: request.fromAmount,
-        toAmount: toAmount.toString(),
-        rate: calculateSwapRate(request.fromAmount, toAmount.toString(), fromAsset, toAsset),
+        toAmount: bnToAmount.toString(),
+        rate: calculateSwapRate(request.fromAmount, bnToAmount.toString(), fromAsset, toAsset),
         provider: this.providerInfo,
         aliveUntil: +Date.now() + (SWAP_QUOTE_TIMEOUT_MAP[this.slug] || SWAP_QUOTE_TIMEOUT_MAP.default),
         feeInfo: {
@@ -180,9 +168,7 @@ export class PiperXSwapHandler implements SwapBaseInterface {
   public async handleSubmitStep (params: SwapSubmitParams): Promise<SwapSubmitStepData> {
     const fromAsset = this.chainService.getAssetBySlug(params.quote.pair.from);
     const evmApi = this.chainService.getEvmApi(fromAsset.originChain);
-    let extrinsic;
 
-    console.log('params', params.quote);
     const txData: SwapBaseTxData = {
       address: params.address,
       provider: this.providerInfo,
@@ -200,9 +186,7 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     const slippageBigInt = BigInt(Math.floor(params.slippage * 10000));
     const minReceive = (toAmountBigInt * (10000n - slippageBigInt)) / (10000n * BigInt(scaleFactor));
 
-    console.log('minReceive', [toAmount, minReceive]);
-
-    extrinsic = v2Swap(fromAmount, minReceive, params.quote.metadata, params.address, BigInt(3000000000), evmApi);
+    const extrinsic = await v2Swap(fromAmount, minReceive, params.quote.metadata as string[], params.address, BigInt(3000000000), evmApi);
 
     return {
       txChain: fromAsset.originChain,

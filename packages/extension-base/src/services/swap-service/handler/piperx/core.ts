@@ -1,13 +1,28 @@
 // Copyright 2019-2022 @subwallet/extension-base
 // SPDX-License-Identifier: Apache-2.0
 
-import { getWeb3Contract } from '@subwallet/extension-base/koni/api/contract-handler/evm/web3';
-import { EvmApi } from '@subwallet/extension-base/services/chain-service/handler/EvmApi';
-import { calculateGasFeeParams } from '@subwallet/extension-base/services/fee-service/utils';
-import { TransactionConfig } from 'web3-core';
+import {getWeb3Contract} from '@subwallet/extension-base/koni/api/contract-handler/evm/web3';
+import {EvmApi} from '@subwallet/extension-base/services/chain-service/handler/EvmApi';
+import {calculateGasFeeParams} from '@subwallet/extension-base/services/fee-service/utils';
+import {TransactionConfig} from 'web3-core';
 
-import { defaultTokens, fee2TickSpace, multicallAddress, piperv3FactoryAddress, piperv3QuoterAddress, v2ComputeAddress, v2RouterAddress, WIP_ADDRESS } from './constant';
-import { multicallAbi, piperv3FactoryAbi, piperv3PoolAbi, piperv3QuoterAbi, v2PoolAbi, v2RouterAbi } from './piperx_abi';
+import {defaultTokens, multicallAddress, v2ComputeAddress, v2RouterAddress, WIP_ADDRESS} from './constant';
+import {multicallAbi, v2PoolAbi, v2RouterAbi} from './piperx_abi';
+
+// export const routingExactInput = async (
+//   tokenIn: string,
+//   tokenOut: string,
+//   tokenInAmount: bigint,
+//   signerAddress: string,
+//   evmApi: EvmApi
+// ): Promise<{ bestRoute: string[]; maxAmountOut: bigint }> => {
+//   const { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 } = await v2RoutingExactInput(tokenIn, tokenOut, tokenInAmount, evmApi);
+//   const { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 } = await v3RoutingExactInput(tokenIn, tokenOut, tokenInAmount, signerAddress, evmApi);
+//
+//   return maxAmountOutV2 > maxAmountOutV3
+//     ? { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 }
+//     : { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 };
+// };
 
 interface Reserves {
   _reserve0: string;
@@ -32,109 +47,17 @@ export const v2GetPrice = async (
 
     const reserve0 = reserve._reserve0;
     const reserve1 = reserve._reserve1;
+
     // Calculate price based on reserves
-    const price = token1_ === token1
+    return token1_ === token1
+      // @ts-ignore
       ? reserve1 / reserve0
+      // @ts-ignore
       : reserve0 / reserve1;
-
-    console.log('price', price);
-
-    return price;
   } catch (error) {
     console.error('Error fetching reserves:', error);
     throw error;
   }
-};
-
-export const v3GetPrice = async (
-  token1: string,
-  token2: string,
-  fee = 3000, // Default to 0.3% fee tier
-  evmApi: EvmApi
-): Promise<number> => {
-  // Compute pool address using V3 factory
-  const factory = getWeb3Contract(piperv3FactoryAddress, evmApi, piperv3FactoryAbi);
-  const poolAddress = await factory.methods.getPool(token1, token2, fee).call();
-
-  if (poolAddress === '0x0000000000000000000000000000000000000000') {
-    throw new Error('Pool does not exist');
-  }
-
-  const poolContract = getWeb3Contract(poolAddress, evmApi, piperv3PoolAbi);
-
-  try {
-    const slot0 = await poolContract.methods.slot0().call();
-
-    const sqrtPriceX96 = slot0.sqrtPriceX96;
-
-    // Convert sqrtPriceX96 to regular price
-    const price = (Number(sqrtPriceX96) / 2 ** 96) ** 2;
-
-    // Determine if price needs to be inverted based on token order
-    const token0 = await poolContract.methods.token0().call();
-
-    console.log('token', [token0, token1]);
-
-    return token0.toLowerCase() === token1.toLowerCase() ? price : 1 / price;
-  } catch (error) {
-    console.error('Error fetching V3 price:', error);
-    throw error;
-  }
-};
-
-export const v3RoutingExactInput = async (
-  tokenIn: string,
-  tokenOut: string,
-  tokenInAmount: bigint,
-  signerAddress: string,
-  evmApi: EvmApi
-): Promise<{ bestRoute: string[]; maxAmountOut: bigint }> => {
-  const quoterContract = getWeb3Contract(piperv3QuoterAddress, evmApi, piperv3QuoterAbi);
-  let bestRoute: string[] = [];
-  let maxAmountOut = BigInt(0);
-
-  const calls = Object.keys(fee2TickSpace).map((feeTier) => ({
-    target: piperv3QuoterAddress,
-    callData: quoterContract.methods
-      .quoteExactInputSingle({
-        tokenIn,
-        tokenOut,
-        fee: feeTier,
-        amountIn: tokenInAmount.toString(),
-        sqrtPriceLimitX96: '0'
-      })
-      .encodeABI()
-  }));
-
-  try {
-    const multicallContract = getWeb3Contract(multicallAddress, evmApi, multicallAbi);
-    const aggregateResult = await multicallContract.methods.tryAggregate(false, calls).call({
-      from: signerAddress,
-      gas: calls.length * 300000
-    });
-
-    aggregateResult.forEach(([success, returnData], i) => {
-      if (success) {
-        try {
-          const decoded = web3.eth.abi.decodeParameters(['uint256', 'uint256'], returnData);
-          const amountOut = BigInt(decoded[0]);
-
-          if (amountOut > maxAmountOut) {
-            maxAmountOut = amountOut;
-            bestRoute = [tokenIn, Object.keys(fee2TickSpace)[i], tokenOut];
-          }
-        } catch (error) {
-          console.log(`Error decoding result for fee tier ${Object.keys(fee2TickSpace)[i]}:`, error);
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Multicall tryAggregate failed:', error);
-  }
-
-  console.log('version3', [bestRoute, maxAmountOut]);
-
-  return { bestRoute, maxAmountOut };
 };
 
 export const v2RoutingExactInput = async (
@@ -147,50 +70,55 @@ export const v2RoutingExactInput = async (
   let maxAmountOut = BigInt(0);
 
   try {
-    console.log('tokenIn', [tokenIn, tokenOut]);
-
     const v2RouterContract = getWeb3Contract(v2RouterAddress, evmApi, v2RouterAbi);
 
     // Direct route calculation
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
       const directResult = await v2RouterContract.methods
         .getAmountsOut(tokenInAmount.toString(), [tokenIn, tokenOut])
-        .call();
+        .call() as number[];
 
       if (directResult && directResult.length > 1) {
         maxAmountOut = BigInt(directResult[1]);
         bestRoute = [tokenIn, tokenOut];
       }
     } catch (error) {
-      console.log('Error in direct route calculation:', error);
+      console.debug('Error in direct route calculation:', error);
     }
 
     // Multicall for intermediate tokens
-    const calls: any[] = [];
+    const calls: Record<string, string>[] = [];
     const intermediateTokens = defaultTokens.filter(
       (intermediateToken) => intermediateToken !== tokenIn && intermediateToken !== tokenOut
     );
 
     for (const intermediateToken of intermediateTokens) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
       const callData = v2RouterContract.methods
         .getAmountsOut(tokenInAmount.toString(), [tokenIn, intermediateToken, tokenOut])
-        .encodeABI();
+        .encodeABI() as string;
 
       calls.push({ target: v2RouterAddress, callData });
     }
 
     try {
       const multicallContract = getWeb3Contract(multicallAddress, evmApi, multicallAbi);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
       const aggregateResult = await multicallContract.methods
         .tryAggregate(false, calls)
-        .call();
+        .call() as [boolean, string][];
+
+      console.log('aggregate', aggregateResult);
 
       for (let i = 0; i < aggregateResult.length; i++) {
         const [success, returnData] = aggregateResult[i];
 
         if (success) {
           try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
             const result = v2RouterContract.methods.getAmountsOut(tokenInAmount.toString(), []).decode(returnData);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-member-access
             const amountOut = BigInt(result[result.length - 1]);
 
             if (amountOut > maxAmountOut) {
@@ -198,35 +126,18 @@ export const v2RoutingExactInput = async (
               bestRoute = [tokenIn, intermediateTokens[i], tokenOut];
             }
           } catch (error) {
-            console.log(`Error decoding result for ${intermediateTokens[i]}:`, error);
+            console.debug(`Error decoding result for ${intermediateTokens[i]}:`, error);
           }
         }
       }
     } catch (error) {
-      console.log('Multicall tryAggregate failed:', error);
+      console.debug('Multicall tryAggregate failed:', error);
     }
   } catch (error) {
     console.error('Error in v2RoutingExactInput:', error);
   }
 
-  console.log('Final route and amount:', { bestRoute, maxAmountOut });
-
   return { bestRoute, maxAmountOut };
-};
-
-export const routingExactInput = async (
-  tokenIn: string,
-  tokenOut: string,
-  tokenInAmount: bigint,
-  signerAddress: string,
-  evmApi: EvmApi
-): Promise<{ bestRoute: string[]; maxAmountOut: bigint }> => {
-  const { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 } = await v2RoutingExactInput(tokenIn, tokenOut, tokenInAmount, evmApi);
-  const { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 } = await v3RoutingExactInput(tokenIn, tokenOut, tokenInAmount, signerAddress, evmApi);
-
-  return maxAmountOutV2 > maxAmountOutV3
-    ? { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 }
-    : { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 };
 };
 
 export const v2Swap = async (
@@ -235,17 +146,15 @@ export const v2Swap = async (
   path: string[],
   address: string,
   expirationTimestamp: bigint,
-  evmApi: EvmApi,
-  customGasLimit?: number
+  evmApi: EvmApi
 ) => {
   try {
     const router = getWeb3Contract(v2RouterAddress, evmApi, v2RouterAbi);
-
     let call;
-    let gasLimit;
 
     if (path[0] === WIP_ADDRESS) {
       // ETH -> Tokens swap
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
       call = router.methods.swapExactETHForTokens(
         amount2Min.toString(),
         path,
@@ -254,6 +163,7 @@ export const v2Swap = async (
       );
     } else if (path[path.length - 1] === WIP_ADDRESS) {
       // Token -> ETH swap
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
       call = router.methods.swapExactTokensForETH(
         amount1.toString(),
         amount2Min.toString(),
@@ -263,6 +173,7 @@ export const v2Swap = async (
       );
     } else {
       // Token -> Token swap
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
       call = router.methods.swapExactTokensForTokens(
         amount1.toString(),
         amount2Min.toString(),
@@ -272,11 +183,12 @@ export const v2Swap = async (
       );
     }
 
-    const encodedCall = call.encodeABI();
-
-    gasLimit = await call.estimateGas().catch(() => 5000000);
-
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+    const encodedCall = call.encodeABI() as string;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+    const gasLimit = await call.estimateGas({ from: address, value: amount1.toString() }) as number;
     const priority = await calculateGasFeeParams(evmApi, evmApi.chainSlug);
+
     const txConfig: TransactionConfig = {
       from: address,
       to: v2RouterAddress.toLowerCase(),
@@ -295,3 +207,94 @@ export const v2Swap = async (
     throw error;
   }
 };
+
+// export const v3GetPrice = async (
+//   token1: string,
+//   token2: string,
+//   fee = 3000, // Default to 0.3% fee tier
+//   evmApi: EvmApi
+// ): Promise<number> => {
+//   // Compute pool address using V3 factory
+//   const factory = getWeb3Contract(piperv3FactoryAddress, evmApi, piperv3FactoryAbi);
+//   const poolAddress = await factory.methods.getPool(token1, token2, fee).call();
+//
+//   if (poolAddress === '0x0000000000000000000000000000000000000000') {
+//     throw new Error('Pool does not exist');
+//   }
+//
+//   const poolContract = getWeb3Contract(poolAddress, evmApi, piperv3PoolAbi);
+//
+//   try {
+//     const slot0 = await poolContract.methods.slot0().call();
+//
+//     const sqrtPriceX96 = slot0.sqrtPriceX96;
+//
+//     // Convert sqrtPriceX96 to regular price
+//     const price = (Number(sqrtPriceX96) / 2 ** 96) ** 2;
+//
+//     // Determine if price needs to be inverted based on token order
+//     const token0 = await poolContract.methods.token0().call();
+//
+//     console.log('token', [token0, token1]);
+//
+//     return token0.toLowerCase() === token1.toLowerCase() ? price : 1 / price;
+//   } catch (error) {
+//     console.error('Error fetching V3 price:', error);
+//     throw error;
+//   }
+// };
+//
+// export const v3RoutingExactInput = async (
+//   tokenIn: string,
+//   tokenOut: string,
+//   tokenInAmount: bigint,
+//   signerAddress: string,
+//   evmApi: EvmApi
+// ): Promise<{ bestRoute: string[]; maxAmountOut: bigint }> => {
+//   const quoterContract = getWeb3Contract(piperv3QuoterAddress, evmApi, piperv3QuoterAbi);
+//   let bestRoute: string[] = [];
+//   let maxAmountOut = BigInt(0);
+//
+//   const calls = Object.keys(fee2TickSpace).map((feeTier) => ({
+//     target: piperv3QuoterAddress,
+//     callData: quoterContract.methods
+//       .quoteExactInputSingle({
+//         tokenIn,
+//         tokenOut,
+//         fee: feeTier,
+//         amountIn: tokenInAmount.toString(),
+//         sqrtPriceLimitX96: '0'
+//       })
+//       .encodeABI()
+//   }));
+//
+//   try {
+//     const multicallContract = getWeb3Contract(multicallAddress, evmApi, multicallAbi);
+//     const aggregateResult = await multicallContract.methods.tryAggregate(false, calls).call({
+//       from: signerAddress,
+//       gas: calls.length * 300000
+//     });
+//
+//     aggregateResult.forEach(([success, returnData], i) => {
+//       if (success) {
+//         try {
+//           const decoded = web3.eth.abi.decodeParameters(['uint256', 'uint256'], returnData);
+//           const amountOut = BigInt(decoded[0]);
+//
+//           if (amountOut > maxAmountOut) {
+//             maxAmountOut = amountOut;
+//             bestRoute = [tokenIn, Object.keys(fee2TickSpace)[i], tokenOut];
+//           }
+//         } catch (error) {
+//           console.log(`Error decoding result for fee tier ${Object.keys(fee2TickSpace)[i]}:`, error);
+//         }
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Multicall tryAggregate failed:', error);
+//   }
+//
+//   console.log('version3', [bestRoute, maxAmountOut]);
+//
+//   return { bestRoute, maxAmountOut };
+// };
