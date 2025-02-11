@@ -159,14 +159,13 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const {accountProxies, currentAccountProxy} = useSelector((state: RootState) => state.accountState);
   const [autoFormatValue] = useLocalStorage(ADDRESS_INPUT_AUTO_FORMAT_VALUE, false);
   const [listTokensCanPayFee, setListTokensCanPayFee] = useState<string[]>([]);
-  const [currentTokenPayFee, setCurrentTokenPayFee] = useState<string>('');
+  const [currentTokenPayFee, setCurrentTokenPayFee] = useState<string>(assetValue);
 
   const [selectedTransactionFee, setSelectedTransactionFee] = useState<TransactionFee | undefined>();
   const { getCurrentConfirmation, renderConfirmationButtons } = useGetConfirmationByScreen('send-fund');
   const checkAction = usePreCheckAction(fromValue, true, detectTranslate('The account you are using is {{accountTitle}}, you cannot send assets with it'));
 
   // todo: remove after test
-  console.log('currentAccountProxy', currentAccountProxy?.id);
 
   const currentConfirmation = useMemo(() => {
     if (chainValue && destChainValue) {
@@ -1015,9 +1014,10 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           feeType={transferInfo?.feeType}
           loading={loading}
           onSelect={setSelectedTransactionFee}
-          tokenSlug={assetValue}
+          tokenSlug={currentTokenPayFee}
           listTokensCanPayFee={listTokensCanPayFee}
           onSetTokenPayFee={onSetTokenPayFee}
+          currentTokenPayFee={currentTokenPayFee}
         />
         {
           chainValue !== destChainValue && (

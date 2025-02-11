@@ -42,7 +42,7 @@ const Component: React.FC<Props> = (props: Props) => {
             <ChooseFeeTokenItem
               key={index}
               onSelect={onSetTokenPayFee}
-              selected={!!selectedItem}
+              selected={selectedItem === item}
               slug={item}
             />
           ))}

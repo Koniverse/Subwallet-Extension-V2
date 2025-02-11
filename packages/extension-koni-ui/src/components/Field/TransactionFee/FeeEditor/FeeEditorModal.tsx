@@ -28,7 +28,8 @@ type Props = ThemeProps & {
   priceValue: number;
   feeType?: string;
   listTokensCanPayFee?: string[];
-  onSetTokenPayFee?: (token: string) => void
+  onSetTokenPayFee?: (token: string) => void;
+  currentTokenPayFee?: string;
 }
 
 enum ViewMode {
@@ -53,7 +54,7 @@ const OPTIONS: FeeDefaultOption[] = [
   'fast'
 ];
 
-const Component = ({ listTokensCanPayFee, className, decimals, onSetTokenPayFee, feeOptionsInfo, feeType, modalId, onSelectOption, priceValue, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
+const Component = ({ listTokensCanPayFee, currentTokenPayFee, className, decimals, onSetTokenPayFee, feeOptionsInfo, feeType, modalId, onSelectOption, priceValue, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
   const { inactiveModal, activeModal } = useContext(ModalContext);
   const [currentViewMode, setViewMode] = useState<ViewMode>(ViewMode.RECOMMENDED);
@@ -193,12 +194,6 @@ const Component = ({ listTokensCanPayFee, className, decimals, onSetTokenPayFee,
     return Promise.resolve();
   }, [t]);
 
-
-  // const onSelectTokenPayFee = useCallback((slug: string) => {
-  //   console.log('setCurrentTokenPayFee sđ', slug);
-  //   onSetTokenPayFee?.(slug);
-  // }, []);
-
   const customMaxFeeValidator = useCallback((rule: Rule, value: string): Promise<void> => {
     if (!value) {
       return Promise.reject(t('Please enter the maximum fee.'));
@@ -252,8 +247,7 @@ const Component = ({ listTokensCanPayFee, className, decimals, onSetTokenPayFee,
       )}
       id={modalId}
       onCancel={onCancelModal}
-      title={t('Choose fee 1')}
-      // title={t('Choose fee 1')}
+      title={t('Choose fee')}
     >
       {feeType === 'evm' && (
         <div className={'__switcher-box'}>
@@ -383,6 +377,7 @@ const Component = ({ listTokensCanPayFee, className, decimals, onSetTokenPayFee,
     items={listTokensCanPayFee}
     modalId={CHOOSE_FEE_TOKEN_MODAL}
     onSetTokenPayFee={onSetTokenPayFee}
+    selectedItem={currentTokenPayFee}
   />
   </>
   );

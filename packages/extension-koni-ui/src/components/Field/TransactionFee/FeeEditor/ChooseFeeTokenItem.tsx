@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {_getAssetSymbol} from '@subwallet/extension-base/services/chain-service/utils';
-import {Icon, Logo} from '@subwallet/react-ui';
+import {Icon, Logo, ModalContext} from '@subwallet/react-ui';
 import CN from 'classnames';
 import {CheckCircle} from 'phosphor-react';
-import React, {useCallback, useMemo} from 'react';
+import React, {useCallback, useContext, useMemo} from 'react';
 import styled from 'styled-components';
 import {useSelector} from "@subwallet/extension-koni-ui/hooks";
 import {ThemeProps} from "@subwallet/extension-koni-ui/types";
+import {CHOOSE_FEE_TOKEN_MODAL} from "@subwallet/extension-koni-ui/constants";
 
 type Props = ThemeProps & {
   slug: string,
@@ -19,8 +20,12 @@ type Props = ThemeProps & {
 const Component: React.FC<Props> = (props: Props) => {
   const { className, onSelect, selected, slug } = props;
   const assetRegistryMap = useSelector((state) => state.assetRegistry.assetRegistry);
+  const { inactiveModal } = useContext(ModalContext);
   const _onSelect = useCallback(() => {
     onSelect?.(slug);
+    setTimeout(() => {
+      inactiveModal(CHOOSE_FEE_TOKEN_MODAL)
+    }, 100)
   }, [onSelect, slug]);
 
   const feeAssetInfo = useMemo(() => {
