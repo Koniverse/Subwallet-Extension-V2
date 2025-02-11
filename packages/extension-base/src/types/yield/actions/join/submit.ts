@@ -3,7 +3,7 @@
 
 import { _Address, ChainType, ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
 
-import { BaseRequestSign, InternalRequestSign, TransactionData } from '../../../transaction';
+import { BaseProcessRequestSign, BaseRequestSign, InternalRequestSign, TransactionData } from '../../../transaction';
 import { NominationPoolInfo, ValidatorInfo, YieldPositionInfo } from '../../info';
 import { OptimalYieldPath } from './step';
 
@@ -41,7 +41,24 @@ export interface SubmitYieldStepData extends AbstractSubmitYieldJoinData { // TO
 
 export type SubmitYieldJoinData = SubmitYieldStepData | SubmitJoinNativeStaking | SubmitJoinNominationPool;
 
-export interface HandleYieldStepParams extends BaseRequestSign {
+export enum EarningProcessType {
+  NOMINATION_POOL = 'NOMINATION_POOL',
+  NATIVE_STAKING = 'NATIVE_STAKING',
+  YIELD = 'YIELD'
+}
+
+export interface SummaryEarningProcessData {
+  data: SubmitYieldJoinData;
+  type: EarningProcessType;
+  brief: {
+    token: string;
+    amount: string;
+    chain: string;
+    method: string;
+  }
+}
+
+export interface HandleYieldStepParams extends BaseRequestSign, BaseProcessRequestSign {
   path: OptimalYieldPath;
   data: SubmitYieldJoinData;
   currentStep: number;

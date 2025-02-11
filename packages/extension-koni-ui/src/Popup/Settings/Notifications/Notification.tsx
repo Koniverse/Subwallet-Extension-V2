@@ -50,7 +50,8 @@ export enum NotificationIconBackgroundColorMap {
   CLAIM_AVAIL_BRIDGE_ON_AVAIL = 'yellow-7', // temporary set
   CLAIM_AVAIL_BRIDGE_ON_ETHEREUM = 'yellow-7',
   CLAIM_POLYGON_BRIDGE = 'yellow-7',
-  SWAP = 'blue-8'
+  SWAP = 'blue-8',
+  EARNING = 'blue-8'
 }
 
 export const NotificationIconMap = {
@@ -61,7 +62,8 @@ export const NotificationIconMap = {
   CLAIM_AVAIL_BRIDGE_ON_AVAIL: Coins, // temporary set
   CLAIM_AVAIL_BRIDGE_ON_ETHEREUM: Coins,
   CLAIM_POLYGON_BRIDGE: Coins,
-  SWAP: Coins
+  SWAP: Coins,
+  EARNING: Coins
 };
 
 const alertModalId = 'notification-alert-modal';
@@ -411,6 +413,9 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
           break;
         }
 
+        case NotificationActionType.EARNING:
+
+        // eslint-disable-next-line no-fallthrough
         case NotificationActionType.SWAP: {
           const metadata = item.metadata as ProcessNotificationMetadata;
 

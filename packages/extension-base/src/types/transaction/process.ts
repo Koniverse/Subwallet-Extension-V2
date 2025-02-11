@@ -2,10 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { _ChainAsset } from '@subwallet/chain-list/types';
+import { TransactionEventResponse } from '@subwallet/extension-base/services/transaction-service/types';
 
 import { CommonStepDetail, CommonStepFeeInfo } from '../service-base';
 import { SwapPair, SwapProvider, SwapRate, SwapRoute, SwapSubmitParams } from '../swap';
 import { RequestYieldStepSubmit } from '../yield';
+
+export interface BaseProcessRequestSign {
+  isPassConfirmation?: boolean;
+  onSend?: (rs: TransactionEventResponse) => void;
+  processId?: string;
+}
 
 export enum ProcessType {
   SWAP = 'swap',
@@ -13,6 +20,7 @@ export enum ProcessType {
 }
 
 export interface RequestSubmitProcessTransaction {
+  address: string;
   type: ProcessType;
   request: SwapSubmitParams | RequestYieldStepSubmit;
   id: string;

@@ -35,7 +35,8 @@ export interface ActionTypeToMetadataMap {
   [NotificationActionType.CLAIM_AVAIL_BRIDGE_ON_AVAIL]: ClaimAvailBridgeNotificationMetadata,
   [NotificationActionType.CLAIM_AVAIL_BRIDGE_ON_ETHEREUM]: ClaimAvailBridgeNotificationMetadata,
   [NotificationActionType.CLAIM_POLYGON_BRIDGE]: ClaimPolygonBridgeNotificationMetadata,
-  [NotificationActionType.SWAP]: ProcessNotificationMetadata
+  [NotificationActionType.SWAP]: ProcessNotificationMetadata,
+  [NotificationActionType.EARNING]: ProcessNotificationMetadata,
 }
 
 export interface SendReceiveNotificationMetadata {
@@ -102,7 +103,8 @@ export enum NotificationActionType {
   CLAIM_AVAIL_BRIDGE_ON_AVAIL = 'CLAIM_AVAIL_BRIDGE_ON_AVAIL',
   CLAIM_AVAIL_BRIDGE_ON_ETHEREUM = 'CLAIM_AVAIL_BRIDGE_ON_ETHEREUM',
   CLAIM_POLYGON_BRIDGE = 'CLAIM_POLYGON_BRIDGE',
-  SWAP = 'SWAP'
+  SWAP = 'SWAP',
+  EARNING = 'EARNING'
 }
 
 export enum NotificationTab {

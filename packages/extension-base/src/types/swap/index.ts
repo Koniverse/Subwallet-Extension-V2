@@ -4,10 +4,10 @@
 import { _ChainInfo } from '@subwallet/chain-list/types';
 import { SwapError } from '@subwallet/extension-base/background/errors/SwapError';
 import { AmountData, ChainType, ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
-import { TransactionEventResponse } from '@subwallet/extension-base/services/transaction-service/types';
-import { TransactionData } from '@subwallet/extension-base/types';
 import { BaseStepDetail, CommonOptimalPath, CommonStepFeeInfo } from '@subwallet/extension-base/types/service-base';
 import BigN from 'bignumber.js';
+
+import { BaseProcessRequestSign, TransactionData } from '../transaction';
 
 // core
 export type SwapRate = number;
@@ -178,16 +178,13 @@ export interface SwapQuoteResponse {
   error?: SwapError; // only if there's no available quote
 }
 
-export interface SwapSubmitParams {
+export interface SwapSubmitParams extends BaseProcessRequestSign {
   process: CommonOptimalPath;
   currentStep: number;
   quote: SwapQuote;
   address: string;
   slippage: number; // Example: 0.01 for 1%
   recipient?: string;
-  isPassConfirmation?: boolean;
-  onSend?: (rs: TransactionEventResponse) => void;
-  processId?: string;
 }
 
 export interface SwapSubmitStepData {

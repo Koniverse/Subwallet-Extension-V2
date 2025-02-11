@@ -14,7 +14,7 @@ import { _BaseNotificationInfo, _NotificationInfo, ClaimAvailBridgeNotificationM
 import { AvailBridgeSourceChain, AvailBridgeTransaction, fetchAllAvailBridgeClaimable, fetchPolygonBridgeTransactions, hrsToMillisecond, PolygonTransaction } from '@subwallet/extension-base/services/inapp-notification-service/utils';
 import { KeyringService } from '@subwallet/extension-base/services/keyring-service';
 import DatabaseService from '@subwallet/extension-base/services/storage-service/DatabaseService';
-import { ProcessTransactionData, ProcessType, SwapBaseTxData } from '@subwallet/extension-base/types';
+import { ProcessTransactionData, ProcessType, SummaryEarningProcessData, SwapBaseTxData } from '@subwallet/extension-base/types';
 import { GetNotificationParams, RequestSwitchStatusParams } from '@subwallet/extension-base/types/notification';
 import { categoryAddresses, formatNumber } from '@subwallet/extension-base/utils';
 import { isSubstrateAddress } from '@subwallet/keyring';
@@ -412,8 +412,22 @@ export class InappNotificationService implements CronServiceInterface {
         .replace('{{toAsset}}', toAsset.symbol)
         .replace('{{toChain}}', toChain.name);
     } else {
-      actionType = NotificationActionType.SWAP;
-      extrinsicType = ExtrinsicType.SWAP;
+      actionType = NotificationActionType.EARNING;
+      extrinsicType = ExtrinsicType.JOIN_YIELD_POOL; // Not used
+
+      const combineInfo = process.combineInfo as SummaryEarningProcessData;
+      const asset = this.chainService.getAssetBySlug(combineInfo.brief.token);
+      const chain = this.chainService.getChainInfoByKey(combineInfo.brief.chain);
+      const amount = combineInfo.brief.amount;
+      const method = combineInfo.brief.method;
+
+      title = '[{{accountName}}] STAKED {{asset}}'
+        .replace('{{asset}}', asset.symbol);
+      description = '{{amount}} {{asset}} on {{chain}} staked via {{method}}. Click to view details'
+        .replace('{{amount}}', formatNumber(amount, asset.decimals || 0))
+        .replace('{{asset}}', asset.symbol)
+        .replace('{{chain}}', chain.name)
+        .replace('{{method}}', method);
     }
 
     const notification: _BaseNotificationInfo = {
