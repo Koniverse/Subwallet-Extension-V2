@@ -3323,7 +3323,7 @@ export default class KoniExtension {
 
     let step: BriefProcessStep | undefined;
 
-    if (processId) {
+    if (processId && poolHandler) {
       const convertFee = (fee: YieldTokenBaseInfo): CommonStepFeeInfo => {
         return {
           feeComponent: [{
@@ -3349,9 +3349,9 @@ export default class KoniExtension {
           data,
           brief: {
             amount: data.amount,
-            chain: poolHandler?.chain || '',
-            token: poolHandler?.metadataInfo.inputAsset || '',
-            method: poolHandler?.type || ''
+            chain: poolHandler.chain,
+            token: poolHandler.metadataInfo.inputAsset,
+            method: poolHandler.type
           }
         };
 
