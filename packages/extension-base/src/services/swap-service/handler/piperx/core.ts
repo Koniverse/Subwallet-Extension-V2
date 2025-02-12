@@ -7,7 +7,7 @@ import { calculateGasFeeParams } from '@subwallet/extension-base/services/fee-se
 import { TransactionConfig } from 'web3-core';
 
 import { defaultTokens, fee2TickSpace, multicallAddress, piperv3FactoryAddress, piperv3QuoterAddress, piperv3SwapRouterAddress, v2ComputeAddress, v2RouterAddress, WIP_ADDRESS } from './constant';
-import { multicallAbi, piperv3FactoryAbi, piperv3PoolAbi, piperv3QuoterAbi, piperv3SwapRouterAbi, v2PoolAbi, v2RouterAbi } from './piperx_abi';
+import { abi, multicallAbi, piperv3FactoryAbi, piperv3PoolAbi, piperv3QuoterAbi, piperv3SwapRouterAbi, v2PoolAbi, v2RouterAbi } from './piperx_abi';
 
 export const routingExactInput = async (
   tokenIn: string,
@@ -141,8 +141,8 @@ export const v2RoutingExactInput = async (
         if (success) {
           try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-            const result = evmApi.api.eth.abi.decodeParameters(['uint256[]'], returnData);
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-member-access
+            const result: {[key: string]: string} = evmApi.api.eth.abi.decodeParameters(['uint256[]'], returnData);
+
             const amountOut = BigInt(result[0][result[0].length - 1]);
 
             if (amountOut > maxAmountOut) {
@@ -186,6 +186,7 @@ export const v2Swap = async (
         expirationTimestamp.toString()
       );
     } else if (path[path.length - 1] === WIP_ADDRESS) {
+      console.log('washere2');
       // Token -> ETH swap
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
       call = router.methods.swapExactTokensForETH(
@@ -195,6 +196,7 @@ export const v2Swap = async (
         address,
         expirationTimestamp.toString()
       );
+      console.log('washere2', call);
     } else {
       // Token -> Token swap
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
@@ -210,7 +212,8 @@ export const v2Swap = async (
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const encodedCall = call.encodeABI() as string;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    const gasLimit = await call.estimateGas({ from: address, value: amount1.toString() }) as number;
+    const gasLimit = await call.estimateGas({ from: address, value: path[0] === WIP_ADDRESS ? amount1.toString() : '0' }) as number;
+
     const priority = await calculateGasFeeParams(evmApi, evmApi.chainSlug);
 
     const txConfig: TransactionConfig = {
@@ -223,9 +226,44 @@ export const v2Swap = async (
       maxPriorityFeePerGas: priority.maxPriorityFeePerGas?.toString()
     };
 
+    console.log('txConfig', txConfig);
+
     return txConfig;
   } catch (error) {
     console.error('Error in swap:', error);
+    throw error;
+  }
+};
+
+export const v2RouterTokenApproval = async (
+  token: string,
+  amount: bigint,
+  address: string,
+  evmApi: EvmApi
+) => {
+  try {
+    const tokenContract = getWeb3Contract(token, evmApi, abi);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+    const call = tokenContract.methods.approve(v2RouterAddress, amount.toString());
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+    const gasLimit = await call.estimateGas({ from: address });
+
+    const priority = await calculateGasFeeParams(evmApi, evmApi.chainSlug);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    const encodedCall = call.encodeABI() as string;
+
+    const txConfig: TransactionConfig = {
+      from: address,
+      to: token.toLowerCase(),
+      data: encodedCall,
+      gas: (gasLimit * 1.5).toFixed(0),
+      maxFeePerGas: priority.maxFeePerGas?.toString(),
+      maxPriorityFeePerGas: priority.maxPriorityFeePerGas?.toString()
+    };
+
+    return txConfig;
+  } catch (error) {
+    console.error('Error in v2RouterTokenApproval:', error);
     throw error;
   }
 };
