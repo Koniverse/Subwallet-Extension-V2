@@ -1893,17 +1893,17 @@ export default class KoniExtension {
       try {
         return await this.#koniState.balanceService.subscribeBalance(address, chain, token, 'transferable', undefined, (data) => {
           freeBalanceSubject.next(data); // Must be called after subscription
-        })
+        });
       } catch (e) {
         const fallBackValue: AmountData = {
           value: '0',
           decimals: srcToken.decimals || 0,
           symbol: srcToken.symbol
-        }
+        };
 
         freeBalanceSubject.next(fallBackValue);
 
-        return [noop, fallBackValue]
+        return [noop, fallBackValue];
       }
     })();
 
