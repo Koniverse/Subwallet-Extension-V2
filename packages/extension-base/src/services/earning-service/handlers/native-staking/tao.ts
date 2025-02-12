@@ -92,20 +92,7 @@ export async function fetchDelegates (): Promise<ValidatorResponse> {
 }
 
 export async function fetchTaoDelegateState (address: string): Promise<RawDelegateState> {
-  console.log('BITTENSOR_API_KEY_1', BITTENSOR_API_KEY_1);
-  console.log('BITTENSOR_API_KEY_2', BITTENSOR_API_KEY_2);
-  console.log('BITTENSOR_API_KEY_3', BITTENSOR_API_KEY_3);
-  console.log('BITTENSOR_API_KEY_4', BITTENSOR_API_KEY_4);
-  console.log('BITTENSOR_API_KEY_5', BITTENSOR_API_KEY_5);
-  console.log('BITTENSOR_API_KEY_6', BITTENSOR_API_KEY_6);
-  console.log('BITTENSOR_API_KEY_7', BITTENSOR_API_KEY_7);
-  console.log('BITTENSOR_API_KEY_8', BITTENSOR_API_KEY_8);
-  console.log('BITTENSOR_API_KEY_9', BITTENSOR_API_KEY_9);
-  console.log('BITTENSOR_API_KEY_10', BITTENSOR_API_KEY_10);
-
   const apiKey = bittensorApiKey();
-
-  console.log('apikey12', apiKey);
 
   return new Promise(function (resolve) {
     fetch(`https://api.taostats.io/api/stake_balance/latest/v1?coldkey=${address}`, {
