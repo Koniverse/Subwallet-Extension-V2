@@ -150,6 +150,10 @@ export interface SimpleSwapValidationMetadata{
   chain: _ChainInfo;
 }
 
+export interface PiperXValidationMetadata{
+  chain: _ChainInfo;
+}
+
 export interface QuoteAskResponse {
   quote?: SwapQuote;
   error?: SwapError;
@@ -202,7 +206,7 @@ export interface OptimalSwapPathParams {
 
 export interface SwapEarlyValidation {
   error?: SwapErrorType;
-  metadata?: ChainflipPreValidationMetadata | HydradxPreValidationMetadata | AssetHubPreValidationMetadata;
+  metadata?: ChainflipPreValidationMetadata | HydradxPreValidationMetadata | AssetHubPreValidationMetadata | PiperXValidationMetadata;
 }
 
 export interface AssetHubSwapEarlyValidation extends SwapEarlyValidation {
