@@ -7,9 +7,8 @@ import { getWeb3Contract } from '@subwallet/extension-base/koni/api/contract-han
 import { _SNOWBRIDGE_GATEWAY_ABI, getSnowBridgeGatewayContract } from '@subwallet/extension-base/koni/api/contract-handler/utils';
 import { _EvmApi } from '@subwallet/extension-base/services/chain-service/types';
 import { _getContractAddressOfToken, _getSubstrateParaId, _isChainEvmCompatible } from '@subwallet/extension-base/services/chain-service/utils';
-import { EvmEIP1559FeeOption, EvmFeeInfo, FeeCustom, FeeOption, GetFeeFunction } from '@subwallet/extension-base/types';
+import { EvmEIP1559FeeOption, EvmFeeInfo, FeeCustom, FeeInfo, FeeOption } from '@subwallet/extension-base/types';
 import { combineEthFee } from '@subwallet/extension-base/utils';
-import { getId } from '@subwallet/extension-base/utils/getId';
 import { TransactionConfig } from 'web3-core';
 import { Contract } from 'web3-eth-contract';
 
@@ -24,7 +23,7 @@ async function getSendFeeToken (contract: Contract, tokenContract: _Address, des
   return (await quoteSendTokenFee.call()) as string;
 }
 
-export async function getSnowBridgeEvmTransfer (tokenInfo: _ChainAsset, originChainInfo: _ChainInfo, destinationChainInfo: _ChainInfo, sender: string, recipientAddress: string, value: string, evmApi: _EvmApi, getChainFee: GetFeeFunction, feeCustom?: FeeCustom, feeOption?: FeeOption): Promise<TransactionConfig> {
+export async function getSnowBridgeEvmTransfer (tokenInfo: _ChainAsset, originChainInfo: _ChainInfo, destinationChainInfo: _ChainInfo, sender: string, recipientAddress: string, value: string, evmApi: _EvmApi, _feeInfo: FeeInfo, feeCustom?: FeeCustom, feeOption?: FeeOption): Promise<TransactionConfig> {
   const snowBridgeContractAddress = getSnowBridgeGatewayContract(originChainInfo.slug);
   const snowBridgeContract = getWeb3Contract(snowBridgeContractAddress, evmApi, _SNOWBRIDGE_GATEWAY_ABI);
   const tokenContract = _getContractAddressOfToken(tokenInfo);
@@ -40,9 +39,8 @@ export async function getSnowBridgeEvmTransfer (tokenInfo: _ChainAsset, originCh
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
   const transferEncodedCall = transferCall.encodeABI() as string;
 
-  const id = getId();
+  const feeInfo = _feeInfo as EvmFeeInfo;
   const _feeCustom = feeCustom as EvmEIP1559FeeOption;
-  const feeInfo = await getChainFee(id, originChainInfo.slug, 'evm') as EvmFeeInfo;
   const feeCombine = combineEthFee(feeInfo, feeOption, _feeCustom);
 
   const sendTokenFee = await getSendFeeToken(snowBridgeContract, tokenContract, destinationChainParaId, destinationFee);

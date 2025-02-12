@@ -1,7 +1,6 @@
 // Copyright 2019-2022 @subwallet/extension-base
 // SPDX-License-Identifier: Apache-2.0
 
-import { EvmEIP1559FeeOption, EvmFeeInfo, FeeOption } from '@subwallet/extension-base/types';
 import BigN from 'bignumber.js';
 import BNEther from 'bn.js';
 import { ethers } from 'ethers';
@@ -91,37 +90,4 @@ export const signatureToHex = (sig: SignedTransaction): string => {
   const hexV = hexStripPrefix(numberToHex(v));
 
   return hexR + hexS + hexV;
-};
-
-interface EvmFeeCombine {
-  gasPrice?: string;
-  maxFeePerGas?: string;
-  maxPriorityFeePerGas?: string;
-}
-
-export const combineEthFee = (feeInfo: EvmFeeInfo, feeOptions?: FeeOption, feeCustom?: EvmEIP1559FeeOption): EvmFeeCombine => {
-  let maxFeePerGas: string | undefined;
-  let maxPriorityFeePerGas: string | undefined;
-
-  if (feeOptions && feeOptions !== 'custom') {
-    maxFeePerGas = feeInfo.options?.[feeOptions].maxFeePerGas;
-    maxPriorityFeePerGas = feeInfo.options?.[feeOptions].maxPriorityFeePerGas;
-  } else if (feeOptions === 'custom' && feeCustom) {
-    maxFeePerGas = feeCustom.maxFeePerGas;
-    maxPriorityFeePerGas = feeCustom.maxPriorityFeePerGas;
-  } else {
-    maxFeePerGas = feeInfo.options?.[feeInfo.options.default].maxFeePerGas;
-    maxPriorityFeePerGas = feeInfo.options?.[feeInfo.options.default].maxPriorityFeePerGas;
-  }
-
-  if (feeInfo.gasPrice) {
-    return {
-      gasPrice: feeInfo.gasPrice
-    };
-  } else {
-    return {
-      maxFeePerGas,
-      maxPriorityFeePerGas
-    };
-  }
 };

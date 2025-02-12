@@ -39,17 +39,24 @@ export interface EvmEIP1559FeeInfo extends BaseFeeInfo {
 export type EvmFeeInfo = EvmLegacyFeeInfo | EvmEIP1559FeeInfo;
 
 export interface EvmLegacyFeeInfoCache extends BaseFeeInfo {
+  type: 'evm';
   gasPrice: string;
   maxFeePerGas: undefined;
   maxPriorityFeePerGas: undefined;
   baseGasFee: undefined;
+  options: undefined;
 }
 
 export interface EvmEIP1559FeeInfoCache extends BaseFeeInfo {
+  type: 'evm';
   gasPrice: undefined;
-  maxFeePerGas: string;
-  maxPriorityFeePerGas: string;
   baseGasFee: string;
+  options: {
+    [FeeOptionKey.SLOW]: EvmEIP1559FeeOption;
+    [FeeOptionKey.AVERAGE]: EvmEIP1559FeeOption;
+    [FeeOptionKey.FAST]: EvmEIP1559FeeOption;
+    [FeeOptionKey.DEFAULT]: FeeDefaultOption;
+  }
 }
 
 export interface EvmLegacyFeeDetail extends EvmLegacyFeeInfo, BaseFeeDetail {

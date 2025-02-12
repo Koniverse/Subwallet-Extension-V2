@@ -15,7 +15,8 @@ export default class FeeService {
 
   private chainFeeSubscriptionMap: Record<FeeChainType, Record<string, FeeSubscription>> = {
     evm: {},
-    substrate: {}
+    substrate: {},
+    ton: {}
   };
 
   constructor (state: KoniState) {
@@ -139,10 +140,18 @@ export default class FeeService {
                 .then((info) => {
                   observer.next(info);
                 })
-                .catch(console.error);
+                .catch((e) => {
+                  console.warn(`Cannot get fee param for ${chain}`, e);
+                  observer.next({
+                    type: 'evm',
+                    gasPrice: '0',
+                    baseGasFee: undefined,
+                    options: undefined
+                } as EvmFeeInfo);
+                });
             } else {
               observer.next({
-                type: 'substrate',
+                type: type as Exclude<FeeChainType, 'evm'>,
                 busyNetwork: false,
                 options: {
                   slow: {

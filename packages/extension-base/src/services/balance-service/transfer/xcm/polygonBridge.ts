@@ -8,9 +8,8 @@ import { _POLYGON_BRIDGE_ABI, getPolygonBridgeContract } from '@subwallet/extens
 import { _EvmApi } from '@subwallet/extension-base/services/chain-service/types';
 import { _getContractAddressOfToken } from '@subwallet/extension-base/services/chain-service/utils';
 import { _NotificationInfo, ClaimPolygonBridgeNotificationMetadata } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
-import { EvmFeeInfo, FeeCustom, FeeOption, GetFeeFunction } from '@subwallet/extension-base/types';
+import { EvmEIP1559FeeOption, EvmFeeInfo, FeeCustom, FeeInfo, FeeOption } from '@subwallet/extension-base/types';
 import { combineEthFee } from '@subwallet/extension-base/utils';
-import { getId } from '@subwallet/extension-base/utils/getId';
 import { TransactionConfig } from 'web3-core';
 import { ContractSendMethod } from 'web3-eth-contract';
 
@@ -49,7 +48,7 @@ async function createPolygonBridgeTransaction (
   value: string,
   destinationNetwork: number,
   evmApi: _EvmApi,
-  getChainFee: GetFeeFunction,
+  _feeInfo: FeeInfo,
   feeCustom?: FeeCustom,
   feeOption?: FeeOption
 ): Promise<TransactionConfig> {
@@ -71,10 +70,9 @@ async function createPolygonBridgeTransaction (
     '0x'
   );
   const transferEncodedCall = transferCall.encodeABI();
-  const id = getId();
-  const feeInfo = await getChainFee(id, originChainInfo.slug, 'evm') as EvmFeeInfo;
+  const feeInfo = _feeInfo as EvmFeeInfo;
 
-  const feeCombine = combineEthFee(feeInfo);
+  const feeCombine = combineEthFee(feeInfo, feeOption, feeCustom as EvmEIP1559FeeOption);
 
   const transactionConfig: TransactionConfig = {
     from: sender,
@@ -91,12 +89,12 @@ async function createPolygonBridgeTransaction (
   return transactionConfig;
 }
 
-export async function _createPolygonBridgeL1toL2Extrinsic (tokenInfo: _ChainAsset, originChainInfo: _ChainInfo, sender: string, recipientAddress: string, value: string, evmApi: _EvmApi, getChainFee: GetFeeFunction, feeCustom?: FeeCustom, feeOption?: FeeOption): Promise<TransactionConfig> {
-  return createPolygonBridgeTransaction(tokenInfo, originChainInfo, sender, recipientAddress, value, 1, evmApi, getChainFee, feeCustom, feeOption);
+export async function _createPolygonBridgeL1toL2Extrinsic (tokenInfo: _ChainAsset, originChainInfo: _ChainInfo, sender: string, recipientAddress: string, value: string, evmApi: _EvmApi, feeInfo: FeeInfo, feeCustom?: FeeCustom, feeOption?: FeeOption): Promise<TransactionConfig> {
+  return createPolygonBridgeTransaction(tokenInfo, originChainInfo, sender, recipientAddress, value, 1, evmApi, feeInfo, feeCustom, feeOption);
 }
 
-export async function _createPolygonBridgeL2toL1Extrinsic (tokenInfo: _ChainAsset, originChainInfo: _ChainInfo, sender: string, recipientAddress: string, value: string, evmApi: _EvmApi, getChainFee: GetFeeFunction, feeCustom?: FeeCustom, feeOption?: FeeOption): Promise<TransactionConfig> {
-  return createPolygonBridgeTransaction(tokenInfo, originChainInfo, sender, recipientAddress, value, 0, evmApi, getChainFee, feeCustom, feeOption);
+export async function _createPolygonBridgeL2toL1Extrinsic (tokenInfo: _ChainAsset, originChainInfo: _ChainInfo, sender: string, recipientAddress: string, value: string, evmApi: _EvmApi, feeInfo: FeeInfo, feeCustom?: FeeCustom, feeOption?: FeeOption): Promise<TransactionConfig> {
+  return createPolygonBridgeTransaction(tokenInfo, originChainInfo, sender, recipientAddress, value, 0, evmApi, feeInfo, feeCustom, feeOption);
 }
 
 export async function getClaimPolygonBridge (chainSlug: string, notification: _NotificationInfo, evmApi: _EvmApi, feeInfo: EvmFeeInfo) {

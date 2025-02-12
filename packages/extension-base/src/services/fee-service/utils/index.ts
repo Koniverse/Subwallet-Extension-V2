@@ -65,6 +65,7 @@ export const fetchInfuraFeeData = async (chainId: number, infuraAuth?: string): 
       });
     }));
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const [feeInfo, thresholdInfo]: [InfuraFeeInfo, InfuraThresholdInfo] = await Promise.all([
       feeResp.json(),
       thressholdResp.json()]);
@@ -91,17 +92,7 @@ export const fetchSubWalletFeeData = async (chainId: number, networkKey: string)
         return rs.json();
       })
       .then((info: EvmFeeInfoCache) => {
-        if (info.gasPrice !== undefined) {
-          resolve(info);
-        } else {
-          resolve({
-            busyNetwork: info.busyNetwork,
-            gasPrice: info.gasPrice,
-            baseGasFee: new BigN(info.baseGasFee),
-            maxFeePerGas: new BigN(info.maxFeePerGas),
-            maxPriorityFeePerGas: new BigN(info.maxPriorityFeePerGas)
-          });
-        }
+        resolve(info);
       })
       .catch((e) => {
         console.warn(e);

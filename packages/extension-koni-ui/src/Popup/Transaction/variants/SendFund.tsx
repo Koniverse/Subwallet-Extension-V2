@@ -182,11 +182,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   }, [chainInfoMap, chainValue, destChainValue, assetInfo]);
 
   const disabledToAddressInput = useMemo(() => {
-    if (_isPosChainL2Bridge(chainValue, destChainValue)) {
-      return true;
-    }
-
-    return false;
+    return _isPosChainL2Bridge(chainValue, destChainValue);
   }, [chainValue, destChainValue]);
 
   const [loading, setLoading] = useState(false);
@@ -797,7 +793,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         address: fromValue,
         chain: assetRegistry[assetValue].originChain,
         token: assetValue,
-        isXcmTransfer: chainValue !== destChainValue,
         destChain: destChainValue,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom

@@ -7,9 +7,8 @@ import { getPSP34ContractPromise } from '@subwallet/extension-base/koni/api/cont
 import { getWasmContractGasLimit } from '@subwallet/extension-base/koni/api/contract-handler/wasm/utils';
 import { EVM_REFORMAT_DECIMALS } from '@subwallet/extension-base/services/chain-service/constants';
 import { _EvmApi, _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
-import { EvmEIP1559FeeOption, EvmFeeInfo, GetFeeFunction, TransactionFee } from '@subwallet/extension-base/types';
+import { EvmEIP1559FeeOption, EvmFeeInfo, FeeInfo, TransactionFee } from '@subwallet/extension-base/types';
 import { combineEthFee } from '@subwallet/extension-base/utils';
-import { getId } from '@subwallet/extension-base/utils/getId';
 import BigN from 'bignumber.js';
 import { t } from 'i18next';
 import { TransactionConfig } from 'web3-core';
@@ -17,7 +16,7 @@ import { TransactionConfig } from 'web3-core';
 interface TransferEvmProps extends TransactionFee {
   chain: string;
   from: string;
-  getChainFee: GetFeeFunction;
+  feeInfo: FeeInfo;
   to: string;
   transferAll: boolean;
   value: string;
@@ -27,15 +26,14 @@ interface TransferEvmProps extends TransactionFee {
 export async function getEVMTransactionObject ({ chain,
   evmApi,
   feeCustom: _feeCustom,
+  feeInfo: _feeInfo,
   feeOption,
   from,
-  getChainFee,
   to,
   transferAll,
   value }: TransferEvmProps): Promise<[TransactionConfig, string]> {
-  const id = getId();
   const feeCustom = _feeCustom as EvmEIP1559FeeOption;
-  const feeInfo = await getChainFee(id, chain, 'evm') as EvmFeeInfo;
+  const feeInfo = _feeInfo as EvmFeeInfo;
 
   const feeCombine = combineEthFee(feeInfo, feeOption, feeCustom);
 
@@ -73,12 +71,11 @@ export async function getEVMTransactionObject ({ chain,
 
 export async function getERC20TransactionObject (
   { assetAddress,
-    chain,
     evmApi,
     feeCustom: _feeCustom,
+    feeInfo: _feeInfo,
     feeOption,
     from,
-    getChainFee,
     to,
     transferAll,
     value }: TransferERC20Props
@@ -102,15 +99,9 @@ export async function getERC20TransactionObject (
     return erc20Contract.methods.transfer(to, transferValue).encodeABI() as string;
   }
 
-  const id = getId();
-
   const transferData = generateTransferData(to, transferValue);
-  const [gasLimit, _feeInfo] = await Promise.all([
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
-    erc20Contract.methods.transfer(to, transferValue).estimateGas({ from }) as number,
-    getChainFee(id, chain, 'evm')
-  ]);
-
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+  const gasLimit = await erc20Contract.methods.transfer(to, transferValue).estimateGas({ from }) as number;
   const feeInfo = _feeInfo as EvmFeeInfo;
   const feeCombine = combineEthFee(feeInfo, feeOption, feeCustom);
 
@@ -136,7 +127,7 @@ interface TransferERC20Props extends TransactionFee {
   chain: string;
   evmApi: _EvmApi;
   from: string;
-  getChainFee: GetFeeFunction;
+  feeInfo: FeeInfo;
   to: string;
   transferAll: boolean;
   value: string;
@@ -149,7 +140,7 @@ export async function getERC721Transaction (
   senderAddress: string,
   recipientAddress: string,
   tokenId: string,
-  getChainFee: GetFeeFunction): Promise<TransactionConfig> {
+  _feeInfo: FeeInfo): Promise<TransactionConfig> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const contract = new web3Api.api.eth.Contract(_ERC721_ABI, contractAddress);
 
@@ -170,8 +161,7 @@ export async function getERC721Transaction (
     throw error;
   }
 
-  const id = getId();
-  const feeInfo = await getChainFee(id, chain, 'evm') as EvmFeeInfo;
+  const feeInfo = _feeInfo as EvmFeeInfo;
   const feeCombine = combineEthFee(feeInfo);
 
   return {

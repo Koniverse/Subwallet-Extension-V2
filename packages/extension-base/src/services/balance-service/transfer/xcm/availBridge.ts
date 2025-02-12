@@ -8,9 +8,8 @@ import { _AVAIL_BRIDGE_GATEWAY_ABI, _AVAIL_TEST_BRIDGE_GATEWAY_ABI, getAvailBrid
 import { _EvmApi, _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
 import { _NotificationInfo, ClaimAvailBridgeNotificationMetadata } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
 import { AVAIL_BRIDGE_API } from '@subwallet/extension-base/services/inapp-notification-service/utils';
-import { EvmEIP1559FeeOption, EvmFeeInfo, FeeCustom, FeeOption, GetFeeFunction } from '@subwallet/extension-base/types';
+import { EvmEIP1559FeeOption, EvmFeeInfo, FeeCustom, FeeInfo, FeeOption } from '@subwallet/extension-base/types';
 import { combineEthFee } from '@subwallet/extension-base/utils';
-import { getId } from '@subwallet/extension-base/utils/getId';
 import { decodeAddress } from '@subwallet/keyring';
 import { PrefixedHexString } from 'ethereumjs-util';
 import { TransactionConfig } from 'web3-core';
@@ -56,7 +55,7 @@ type Message = {
   messageType: string;
 };
 
-export async function getAvailBridgeTxFromEth (originChainInfo: _ChainInfo, sender: string, recipient: string, value: string, evmApi: _EvmApi, getChainFee: GetFeeFunction, feeCustom?: FeeCustom, feeOption?: FeeOption): Promise<TransactionConfig> {
+export async function getAvailBridgeTxFromEth (originChainInfo: _ChainInfo, sender: string, recipient: string, value: string, evmApi: _EvmApi, fee: FeeInfo, feeCustom?: FeeCustom, feeOption?: FeeOption): Promise<TransactionConfig> {
   const availBridgeContractAddress = getAvailBridgeGatewayContract(originChainInfo.slug);
   const ABI = getAvailBridgeAbi(originChainInfo.slug);
   const availBridgeContract = getWeb3Contract(availBridgeContractAddress, evmApi, ABI);
@@ -65,9 +64,8 @@ export async function getAvailBridgeTxFromEth (originChainInfo: _ChainInfo, send
   const sendAvail = availBridgeContract.methods.sendAVAIL(_address, value) as ContractSendMethod;
   const transferData = sendAvail.encodeABI();
   const gasLimit = await sendAvail.estimateGas({ from: sender });
-  const id = getId();
   const _feeCustom = feeCustom as EvmEIP1559FeeOption;
-  const feeInfo = await getChainFee(id, originChainInfo.slug, 'evm') as EvmFeeInfo;
+  const feeInfo = fee as EvmFeeInfo;
 
   const feeCombine = combineEthFee(feeInfo, feeOption, _feeCustom);
 
