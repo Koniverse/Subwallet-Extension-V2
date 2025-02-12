@@ -1,13 +1,12 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import {ThemeProps} from '@subwallet/extension-koni-ui/types';
-import {ModalContext, SwModal} from '@subwallet/react-ui';
+import ChooseFeeTokenItem from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/ChooseFeeTokenItem';
+import { ThemeProps } from '@subwallet/extension-koni-ui/types';
+import { ModalContext, SwModal } from '@subwallet/react-ui';
 import CN from 'classnames';
-import React, {useCallback, useContext} from 'react';
+import React, { useCallback, useContext } from 'react';
 import styled from 'styled-components';
-import ChooseFeeTokenItem
-  from "@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/ChooseFeeTokenItem";
 
 type Props = ThemeProps & {
   modalId: string,
@@ -18,7 +17,7 @@ type Props = ThemeProps & {
 }
 
 const Component: React.FC<Props> = (props: Props) => {
-  const { className, items, modalId, selectedItem, onSetTokenPayFee } = props;
+  const { className, items, modalId, onSetTokenPayFee, selectedItem } = props;
   const { inactiveModal } = useContext(ModalContext);
 
   const onCancel = useCallback(() => {

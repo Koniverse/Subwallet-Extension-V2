@@ -206,7 +206,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const [transferInfo, setTransferInfo] = useState<ResponseSubscribeTransfer | undefined>();
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
   const chainStatus = useMemo(() => chainStatusMap[chainValue]?.connectionStatus, [chainValue, chainStatusMap]);
-  const estimatedFee = useMemo((): string => transferInfo?.feeOptions.estimatedFee || '0', [transferInfo]);
+  const estimatedNativeFee = useMemo((): string => transferInfo?.feeOptions.estimatedFee || '0', [transferInfo]);
 
   const [processState, dispatchProcessState] = useReducer(commonProcessReducer, DEFAULT_COMMON_PROCESS);
 
@@ -904,25 +904,25 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     const nativeTokenSlug = chainInfo && _getChainNativeTokenSlug(chainInfo);
 
     if (currentTokenPayFee) {
-      const getEstimateFee = async () => {
+      const getEstimatedFee = async () => {
         try {
-          const response = await getAmountForPair({
-            tokenSlug2: currentTokenPayFee,
-            tokenSlug1: nativeTokenSlug,
-            amount: estimatedFee
+          const tokenPayFeeAmount = await getAmountForPair({
+            nativeTokenSlug,
+            nativeTokenFeeAmount: estimatedNativeFee,
+            toTokenSlug: currentTokenPayFee
           });
 
-          setTokenPayFeeAmount(response);
+          setTokenPayFeeAmount(tokenPayFeeAmount);
         } catch (error) {
           console.error('Error fetching tokens:', error);
         }
       };
 
-      getEstimateFee().catch((error) => {
-        console.error('Unhandled error in getEstimateFee:', error);
+      getEstimatedFee().catch((error) => {
+        console.error('Unhandled error in getEstimatedFee:', error);
       });
     }
-  }, [chainInfoMap, chainValue, currentTokenPayFee, estimatedFee]);
+  }, [chainInfoMap, chainValue, currentTokenPayFee, estimatedNativeFee]);
 
   useRestoreTransaction(form);
 
@@ -1039,7 +1039,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
 
         <FeeEditor
           currentTokenPayFee={currentTokenPayFee}
-          estimateFee={tokenPayFeeAmount || estimatedFee}
+          estimateFee={tokenPayFeeAmount || estimatedNativeFee}
           feeOptionsInfo={transferInfo?.feeOptions}
           feeType={transferInfo?.feeType}
           listTokensCanPayFee={listTokensCanPayFee}

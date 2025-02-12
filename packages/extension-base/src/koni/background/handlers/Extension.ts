@@ -1646,15 +1646,15 @@ export default class KoniExtension {
   }
 
   private async getAmountForPair (request: RequestGetAmountForPair) {
-    const { amount, tokenSlug1, tokenSlug2 } = request;
+    const { nativeTokenFeeAmount, nativeTokenSlug, toTokenSlug } = request;
 
-    const asset1 = this.#koniState.chainService.getAssetBySlug(tokenSlug1);
-    const asset2 = this.#koniState.chainService.getAssetBySlug(tokenSlug2);
+    const asset1 = this.#koniState.chainService.getAssetBySlug(nativeTokenSlug);
+    const asset2 = this.#koniState.chainService.getAssetBySlug(toTokenSlug);
 
     const substrateApi = this.#koniState.chainService.getSubstrateApi(asset1.originChain);
     const reserve = await getReserveForPool(substrateApi.api, asset1, asset2);
 
-    return estimateTokensForPool(amount, reserve);
+    return estimateTokensForPool(nativeTokenFeeAmount, reserve);
   }
 
   private async evmNftSubmitTransaction (inputData: NftTransactionRequest): Promise<SWTransactionResponse> {

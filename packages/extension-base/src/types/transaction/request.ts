@@ -40,7 +40,7 @@ export interface RequestGetTokensCanPayFee {
 }
 
 export interface RequestGetAmountForPair {
-  amount: string,
-  tokenSlug1: string,
-  tokenSlug2: string
+  nativeTokenFeeAmount: string,
+  nativeTokenSlug: string,
+  toTokenSlug: string
 }

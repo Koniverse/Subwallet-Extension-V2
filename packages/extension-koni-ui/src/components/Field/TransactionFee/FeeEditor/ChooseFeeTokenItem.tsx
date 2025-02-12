@@ -1,15 +1,15 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import {_getAssetSymbol} from '@subwallet/extension-base/services/chain-service/utils';
-import {Icon, Logo, ModalContext} from '@subwallet/react-ui';
+import { _getAssetSymbol } from '@subwallet/extension-base/services/chain-service/utils';
+import { CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
+import { useSelector } from '@subwallet/extension-koni-ui/hooks';
+import { ThemeProps } from '@subwallet/extension-koni-ui/types';
+import { Icon, Logo, ModalContext } from '@subwallet/react-ui';
 import CN from 'classnames';
-import {CheckCircle} from 'phosphor-react';
-import React, {useCallback, useContext, useMemo} from 'react';
+import { CheckCircle } from 'phosphor-react';
+import React, { useCallback, useContext, useMemo } from 'react';
 import styled from 'styled-components';
-import {useSelector} from "@subwallet/extension-koni-ui/hooks";
-import {ThemeProps} from "@subwallet/extension-koni-ui/types";
-import {CHOOSE_FEE_TOKEN_MODAL} from "@subwallet/extension-koni-ui/constants";
 
 type Props = ThemeProps & {
   slug: string,
@@ -24,8 +24,8 @@ const Component: React.FC<Props> = (props: Props) => {
   const _onSelect = useCallback(() => {
     onSelect?.(slug);
     setTimeout(() => {
-      inactiveModal(CHOOSE_FEE_TOKEN_MODAL)
-    }, 100)
+      inactiveModal(CHOOSE_FEE_TOKEN_MODAL);
+    }, 100);
   }, [onSelect, slug]);
 
   const feeAssetInfo = useMemo(() => {
@@ -48,7 +48,7 @@ const Component: React.FC<Props> = (props: Props) => {
           />
           <div className={'__fee-info'}>
             <div className={'__line-1'}>
-                <div className={'__fee-symbol'}>{_getAssetSymbol(feeAssetInfo)}</div>
+              <div className={'__fee-symbol'}>{_getAssetSymbol(feeAssetInfo)}</div>
             </div>
           </div>
         </div>

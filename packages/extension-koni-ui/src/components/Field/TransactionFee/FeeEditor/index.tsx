@@ -45,7 +45,7 @@ type Props = ThemeProps & {
 // todo: will update dynamic later
 const modalId = 'FeeEditorModalId';
 
-const Component = ({ listTokensCanPayFee, onSetTokenPayFee, className, currentTokenPayFee, estimateFee, feeOptionsInfo, feeType, isLoading = false, loading, onSelect, renderFieldNode, tokenSlug }: Props): React.ReactElement<Props> => {
+const Component = ({ className, currentTokenPayFee, estimateFee, feeOptionsInfo, feeType, isLoading = false, listTokensCanPayFee, loading, onSelect, onSetTokenPayFee, renderFieldNode, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
   const { activeModal } = useContext(ModalContext);
   const assetRegistry = useSelector((root) => root.assetRegistry.assetRegistry);
@@ -148,17 +148,17 @@ const Component = ({ listTokensCanPayFee, onSetTokenPayFee, className, currentTo
       }
 
       <FeeEditorModal
+        currentTokenPayFee={currentTokenPayFee}
         decimals={decimals}
         feeOptionsInfo={feeOptionsInfo}
         feeType={feeType}
+        listTokensCanPayFee={listTokensCanPayFee}
         modalId={modalId}
         onSelectOption={onSelectTransactionFee}
+        onSetTokenPayFee={onSetTokenPayFee}
         priceValue={priceValue}
         symbol={symbol}
         tokenSlug={tokenSlug}
-        listTokensCanPayFee={listTokensCanPayFee}
-        onSetTokenPayFee={onSetTokenPayFee}
-        currentTokenPayFee={currentTokenPayFee}
       />
     </>
   );
