@@ -186,7 +186,6 @@ export const v2Swap = async (
         expirationTimestamp.toString()
       );
     } else if (path[path.length - 1] === WIP_ADDRESS) {
-      console.log('washere2');
       // Token -> ETH swap
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
       call = router.methods.swapExactTokensForETH(
@@ -196,7 +195,6 @@ export const v2Swap = async (
         address,
         expirationTimestamp.toString()
       );
-      console.log('washere2', call);
     } else {
       // Token -> Token swap
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
@@ -392,7 +390,6 @@ export const v3Swap = async (
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
       call = router.methods.exactInputSingle(exactInputSingleParams);
     } else if (path[2] === WIP_ADDRESS) {
-      console.log('router', router);
       // Token -> IP (ERC-20 to Native IP)
       const multicallData = [
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
@@ -413,7 +410,7 @@ export const v3Swap = async (
     const encodedCall = call.encodeABI() as string;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    const gasLimit = await call.estimateGas({ from: address, value: amount1.toString() }) as number;
+    const gasLimit = await call.estimateGas({ from: address, value: path[0] === WIP_ADDRESS ? amount1.toString() : '0' }) as number;
     const priority = await calculateGasFeeParams(evmApi, evmApi.chainSlug);
 
     const txConfig: TransactionConfig = {
