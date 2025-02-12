@@ -71,6 +71,12 @@ export interface BriefSwapStep {
   route: SwapRoute;
 }
 
+export interface ApproveStepMetadata {
+  contractAddress: string;
+  spenderAddress: string;
+  amount?: string;
+}
+
 export interface RequestSubscribeProcessById {
   processId: string;
 }
