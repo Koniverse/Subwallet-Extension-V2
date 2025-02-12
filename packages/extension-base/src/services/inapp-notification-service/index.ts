@@ -163,7 +163,7 @@ export class InappNotificationService implements CronServiceInterface {
       }
     }
 
-    if ([NotificationActionType.SWAP].includes(candidateNotification.actionType)) {
+    if ([NotificationActionType.SWAP, NotificationActionType.EARNING].includes(candidateNotification.actionType)) {
       const candidateMetadata = candidateNotification.metadata as ProcessNotificationMetadata;
       const processId = candidateMetadata.processId;
 
