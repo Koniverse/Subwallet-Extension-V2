@@ -32,3 +32,15 @@ export interface RequestCheckCrossChainTransfer extends RequestBaseTransfer, Tra
 }
 
 export type RequestCrossChainTransfer = InternalRequestSign<RequestCheckCrossChainTransfer>;
+
+export interface RequestGetTokensCanPayFee {
+  proxyId: string;
+  chain: string;
+  feeAmount?: string;
+}
+
+export interface RequestGetAmountForPair {
+  nativeTokenFeeAmount: string,
+  nativeTokenSlug: string,
+  toTokenSlug: string
+}

@@ -119,6 +119,8 @@ export default class TransactionService {
     }
 
     const transaction = transactionInput.transaction;
+    const nativeTokenInfo = this.state.chainService.getNativeTokenInfo(chain);
+    const tokenPayFeeInfo = transactionInput.tokenPayFeeSlug ? this.chainService.getAssetBySlug(transactionInput.tokenPayFeeSlug) : undefined;
 
     // Check duplicated transaction
     validationResponse.errors.push(...this.checkDuplicate(transactionInput));
@@ -130,6 +132,7 @@ export default class TransactionService {
       validationResponse.errors.push(new TransactionError(BasicTxErrorType.INTERNAL_ERROR, t('Cannot find network')));
     }
 
+    const substrateApi = this.state.chainService.getSubstrateApi(chainInfo.slug);
     const evmApi = this.state.chainService.getEvmApi(chainInfo.slug);
     const tonApi = this.state.chainService.getTonApi(chainInfo.slug);
     const isNoEvmApi = transaction && !isSubstrateTransaction(transaction) && !isTonTransaction(transaction) && !evmApi; // todo: should split isEvmTx && isNoEvmApi. Because other chains type also has no Evm Api
@@ -143,14 +146,13 @@ export default class TransactionService {
     const id = getId();
     const feeInfo = await this.state.feeService.subscribeChainFee(id, chain, 'evm') as EvmFeeInfo;
 
-    validationResponse.estimateFee = await estimateFeeForTransaction(validationResponse, transaction, chainInfo, evmApi, feeInfo);
+    validationResponse.estimateFee = await estimateFeeForTransaction(validationResponse, transaction, chainInfo, evmApi, substrateApi, feeInfo, nativeTokenInfo, tokenPayFeeInfo);
 
     const chainInfoMap = this.state.chainService.getChainInfoMap();
 
     // Check account signing transaction
     checkSigningAccountForTransaction(validationResponse, chainInfoMap);
 
-    const nativeTokenInfo = this.state.chainService.getNativeTokenInfo(chain);
     const nativeTokenAvailable = await this.state.balanceService.getTransferableBalance(address, chain, nativeTokenInfo.slug, extrinsicType);
 
     // Check available balance against transaction fee
@@ -1111,8 +1113,10 @@ export default class TransactionService {
     return emitter;
   }
 
-  private signAndSendSubstrateTransaction ({ address, chain, feeCustom, id, transaction, url }: SWTransaction): TransactionEmitter {
+  private signAndSendSubstrateTransaction ({ address, chain, feeCustom, id, tokenPayFeeSlug, transaction, url }: SWTransaction): TransactionEmitter {
     const tip = (feeCustom as SubstrateTipInfo)?.tip || '0';
+    const feeAssetId = tokenPayFeeSlug ? this.state.chainService.getAssetBySlug(tokenPayFeeSlug).metadata?.multilocation as Record<string, any> : undefined;
+
     const emitter = new EventEmitter<TransactionEventMap>();
     const eventData: TransactionEventResponse = {
       id,
@@ -1138,7 +1142,8 @@ export default class TransactionService {
         }
       } as Signer,
       tip,
-      withSignedTransaction: true
+      withSignedTransaction: true,
+      assetId: feeAssetId
     };
 
     // if (_isRuntimeUpdated(signedExtensions)) {
