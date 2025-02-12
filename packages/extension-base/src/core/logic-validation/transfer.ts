@@ -12,7 +12,7 @@ import { isBounceableAddress } from '@subwallet/extension-base/services/balance-
 import { _TRANSFER_CHAIN_GROUP } from '@subwallet/extension-base/services/chain-service/constants';
 import { _EvmApi, _SubstrateApi, _TonApi } from '@subwallet/extension-base/services/chain-service/types';
 import { _getAssetDecimals, _getChainExistentialDeposit, _getChainNativeTokenBasicInfo, _getContractAddressOfToken, _getTokenMinAmount, _isNativeToken, _isTokenEvmSmartContract, _isTokenTonSmartContract } from '@subwallet/extension-base/services/chain-service/utils';
-import { estimateTokensForPool, getReserveForPool } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
+import { calculateToAmountByReservePool } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
 import { isSubstrateTransaction, isTonTransaction } from '@subwallet/extension-base/services/transaction-service/helpers';
 import { OptionalSWTransaction, SWTransactionInput, SWTransactionResponse } from '@subwallet/extension-base/services/transaction-service/types';
 import { AccountSignMode, BasicTxErrorType, BasicTxWarningCode, EvmEIP1559FeeOption, EvmFeeInfo, TransferTxErrorType } from '@subwallet/extension-base/types';
@@ -421,10 +421,7 @@ export async function estimateFeeForTransaction (validationResponse: SWTransacti
   if (tokenPayFeeInfo) {
     estimateFee.decimals = tokenPayFeeInfo.decimals || 0;
     estimateFee.symbol = tokenPayFeeInfo.symbol;
-
-    const reserve = await getReserveForPool(substrateApi.api, nativeTokenInfo, tokenPayFeeInfo);
-
-    estimateFee.value = estimateTokensForPool(estimateFee.value, reserve);
+    estimateFee.value = await calculateToAmountByReservePool(substrateApi.api, nativeTokenInfo, tokenPayFeeInfo, estimateFee.value);
   }
 
   return estimateFee;

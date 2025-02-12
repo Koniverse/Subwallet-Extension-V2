@@ -37,6 +37,12 @@ export const getReserveForPool = async (api: ApiPromise, asset1: _ChainAsset, as
   }
 };
 
+export const calculateToAmountByReservePool = async (api: ApiPromise, fromToken: _ChainAsset, toToken: _ChainAsset, fromAmount: string): Promise<string> => {
+  const reserve = await getReserveForPool(api, fromToken, toToken);
+
+  return estimateTokensForPool(fromAmount, reserve);
+};
+
 export const getReserveForPath = async (api: ApiPromise, paths: _ChainAsset[]): Promise<Array<[string, string]>> => {
   const pairs: Array<[_ChainAsset, _ChainAsset]> = [];
 
