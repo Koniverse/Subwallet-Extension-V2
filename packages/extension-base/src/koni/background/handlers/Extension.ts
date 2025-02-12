@@ -3310,8 +3310,8 @@ export default class KoniExtension {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { chainType, extrinsic, extrinsicType, transferNativeAmount, txChain, txData } = await this.#koniState.earningService.handleYieldJoin(inputData);
-    const poolHandler = await this.#koniState.earningService.getPoolHandler(data.slug);
     const isPoolSupportAlternativeFee = this.#koniState.earningService.isPoolSupportAlternativeFee(inputData.data.slug);
+    const poolHandler = this.#koniState.earningService.getPoolHandler(data.slug);
 
     const isMintingStep = YIELD_EXTRINSIC_TYPES.includes(extrinsicType);
 
@@ -3340,6 +3340,7 @@ export default class KoniExtension {
       if (!this.#koniState.transactionService.checkProcessExist(processId)) {
         const lastStep = path.steps[path.steps.length - 1];
         const combineInfo: SummaryEarningProcessData = {
+          // In real case, only `YIELD` have multiple steps
           type: lastStep.type === YieldStepType.JOIN_NOMINATION_POOL
             ? EarningProcessType.NOMINATION_POOL
             : lastStep.type === YieldStepType.NOMINATE
