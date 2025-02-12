@@ -299,7 +299,7 @@ export default class TransactionService {
       this.onFailed({ ...data, errors: [...data.errors, new TransactionError(BasicTxErrorType.INTERNAL_ERROR)] });
 
       if (step) {
-        this.updateProcessStepStatus(step, { status: StepStatus.COMPLETE });
+        this.updateProcessStepStatus(step, { status: StepStatus.FAILED });
       }
     });
 
