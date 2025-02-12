@@ -147,7 +147,7 @@ export default class FeeService {
                     gasPrice: '0',
                     baseGasFee: undefined,
                     options: undefined
-                } as EvmFeeInfo);
+                  } as EvmFeeInfo);
                 });
             } else {
               observer.next({
