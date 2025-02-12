@@ -61,7 +61,7 @@ export const _PROVIDER_TO_SUPPORTED_PAIR_MAP: Record<string, string[]> = {
   [SwapProviderId.KUSAMA_ASSET_HUB]: [COMMON_CHAIN_SLUGS.KUSAMA_ASSET_HUB],
   [SwapProviderId.ROCOCO_ASSET_HUB]: [COMMON_CHAIN_SLUGS.ROCOCO_ASSET_HUB],
   [SwapProviderId.SIMPLE_SWAP]: ['bittensor', COMMON_CHAIN_SLUGS.ETHEREUM, COMMON_CHAIN_SLUGS.POLKADOT],
-  [SwapProviderId.PIPERX]: ['storyOdyssey_testnet']
+  [SwapProviderId.PIPERX]: ['storyOdyssey_testnet', 'story_protocol']
 };
 
 export function getSwapAlternativeAsset (swapPair: SwapPair): string | undefined {

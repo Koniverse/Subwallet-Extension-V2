@@ -19,9 +19,10 @@ export const routingExactInput = async (
   const { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 } = await v2RoutingExactInput(tokenIn, tokenOut, tokenInAmount, evmApi);
   const { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 } = await v3RoutingExactInput(tokenIn, tokenOut, tokenInAmount, signerAddress, evmApi);
 
-  return maxAmountOutV2 > maxAmountOutV3
-    ? { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 }
-    : { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 };
+  return { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 };
+  // return maxAmountOutV2 > maxAmountOutV3
+  //   ? { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 }
+  //   : { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 };
 };
 
 export const swap = async (
@@ -36,6 +37,16 @@ export const swap = async (
     return await v3Swap(amount1, amount2Min, path, address, expirationTimestamp, evmApi);
   } else { // v2 swap
     return await v2Swap(amount1, amount2Min, path, address, expirationTimestamp, evmApi);
+  }
+};
+
+export const checkSwapVersion = (
+  path: string[]
+): 'v2' | 'v3' => {
+  if (path[1].length < 10) { // v3 swap
+    return 'v3';
+  } else { // v2 swap
+    return 'v2';
   }
 };
 
@@ -233,16 +244,17 @@ export const v2Swap = async (
   }
 };
 
-export const v2RouterTokenApproval = async (
+export const routerTokenApproval = async (
   token: string,
   amount: bigint,
   address: string,
+  spender: string,
   evmApi: EvmApi
 ) => {
   try {
     const tokenContract = getWeb3Contract(token, evmApi, abi);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
-    const call = tokenContract.methods.approve(v2RouterAddress, amount.toString());
+    const call = tokenContract.methods.approve(spender, amount.toString());
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
     const gasLimit = await call.estimateGas({ from: address });
 
@@ -384,6 +396,7 @@ export const v3Swap = async (
       amountOutMinimum: '1',
       sqrtPriceLimitX96: '0'
     };
+    console.log('fuck', amount2Min.toString());
 
     if (path[0] === WIP_ADDRESS) {
       // IP -> Token (Native IP to ERC-20)

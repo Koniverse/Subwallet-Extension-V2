@@ -24,6 +24,15 @@ export const piperv3FactoryAddress = '0xf3d448d7A83F749695c49d8411247fC3868fB633
 export const piperv3NFTPositionManagerAddress = '0xf03c65d9be145746f800E2781eD140F6dd238F38';
 export const multicallAddress = '0xcA11bde05977b3631167028862bE2a173976CA11';
 
+export const MAINNET_WIP_ADDRESS = '0x1514000000000000000000000000000000000000';
+export const mainnet_v2FactoryAddress = '0x6D3e2f58954bf4E1d0C4bA26a85a1b49b2e244C6';
+export const mainnet_v2RouterAddress = '0x674eFAa8C50cBEF923ECe625d3c276B7Bb1c16fB';
+export const mainnet_piperv3QuoterAddress = '0xe8CabF9d1FFB6CE23cF0a86641849543ec7BD7d5';
+export const mainnet_piperv3SwapRouterAddress = '0x8295c195CEe31404ea082d253a140310b9a0A37e';
+export const mainnet_piperv3FactoryAddress = '0xb8c21e89983B5EcCD841846eA294c4c8a89718f1';
+export const mainnet_piperv3NFTPositionManagerAddress = '0x700722D24f9256Be288f56449E8AB1D27C4a70ca';
+export const mainnet_multicallAddress = '0xcA11bde05977b3631167028862bE2a173976CA11';
+
 export const v2ComputeAddress = (token0: string, token1: string) => {
   const [token0Sorted, token1Sorted] = token0.toLowerCase() < token1.toLowerCase()
     ? [token0, token1]

@@ -5,22 +5,25 @@ import { SwapError } from '@subwallet/extension-base/background/errors/SwapError
 import { TransactionError } from '@subwallet/extension-base/background/errors/TransactionError';
 import { ChainType, ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
 import { _getPiperXEarlyValidationError } from '@subwallet/extension-base/core/logic-validation';
+import { getERC20Contract } from '@subwallet/extension-base/koni/api/contract-handler/evm/web3';
 import { BalanceService } from '@subwallet/extension-base/services/balance-service';
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
 import { _getChainNativeTokenSlug, _getContractAddressOfToken, _isNativeToken } from '@subwallet/extension-base/services/chain-service/utils';
-import { BaseStepDetail, BasicTxErrorType, CommonFeeComponent, CommonOptimalPath, CommonStepFeeInfo, CommonStepType, HandleYieldStepData, OptimalSwapPathParams, PiperXValidationMetadata, SwapBaseTxData, SwapEarlyValidation, SwapErrorType, SwapFeeType, SwapProviderId, SwapQuote, SwapRequest, SwapStepType, SwapSubmitParams, SwapSubmitStepData, ValidateSwapProcessParams } from '@subwallet/extension-base/types';
+import { BaseStepDetail, BasicTxErrorType, CommonFeeComponent, CommonOptimalPath, CommonStepFeeInfo, CommonStepType, HandleYieldStepData, OptimalSwapPathParams, PiperXValidationMetadata, SwapBaseTxData, SwapEarlyValidation, SwapErrorType, SwapFeeType, SwapProviderId, SwapQuote, SwapRequest, SwapStepType, SwapSubmitParams, SwapSubmitStepData, TokenSpendingApprovalParams, ValidateSwapProcessParams } from '@subwallet/extension-base/types';
+import BigNumber from 'bignumber.js';
 import { TransactionConfig } from 'web3-core';
 
 import { calculateSwapRate, SWAP_QUOTE_TIMEOUT_MAP } from '../../utils';
 import { SwapBaseHandler, SwapBaseInterface } from '../base-handler';
-import { WIP_ADDRESS } from './constant';
-import { routingExactInput, swap, v2RouterTokenApproval } from './core';
+import { mainnet_v2RouterAddress, piperv3SwapRouterAddress, v2RouterAddress, WIP_ADDRESS } from './constant';
+import {checkSwapVersion, routerTokenApproval, routingExactInput, swap, v3Swap} from './core';
 
 export class PiperXSwapHandler implements SwapBaseInterface {
   private swapBaseHandler: SwapBaseHandler;
   providerSlug: SwapProviderId;
+  isTestnet: boolean;
 
-  constructor (chainService: ChainService, balanceService: BalanceService) {
+  constructor (chainService: ChainService, balanceService: BalanceService, isTestnet: boolean) {
     this.swapBaseHandler = new SwapBaseHandler({
       chainService,
       balanceService,
@@ -28,6 +31,7 @@ export class PiperXSwapHandler implements SwapBaseInterface {
       providerSlug: SwapProviderId.PIPERX
     });
     this.providerSlug = SwapProviderId.PIPERX;
+    this.isTestnet = isTestnet;
   }
 
   get chainService () {
@@ -49,6 +53,16 @@ export class PiperXSwapHandler implements SwapBaseInterface {
   get slug () {
     return this.swapBaseHandler.slug;
   }
+
+  get v2RouterAddress () {
+    if (this.isTestnet) {
+      return v2RouterAddress;
+    } else {
+      return mainnet_v2RouterAddress;
+    }
+  }
+
+  // todo
 
   public validateSwapRequest (request: SwapRequest): Promise<SwapEarlyValidation> {
     try {
@@ -158,6 +172,26 @@ export class PiperXSwapHandler implements SwapBaseInterface {
 
   async getApprovalStep (params: OptimalSwapPathParams): Promise<[BaseStepDetail, CommonStepFeeInfo] | undefined> {
     if (params.selectedQuote) {
+      const fromAsset = this.chainService.getAssetBySlug(params.selectedQuote.pair.from);
+
+      if (_isNativeToken(fromAsset)) {
+        return Promise.resolve(undefined);
+      }
+
+      const versionUsed = checkSwapVersion(params.selectedQuote.metadata as string[]);
+      const routerContract = versionUsed === 'v2' ? v2RouterAddress : piperv3SwapRouterAddress;
+
+      const evmApi = this.chainService.getEvmApi(fromAsset.originChain);
+
+      const fromContractAddress = _getContractAddressOfToken(fromAsset);
+      const fromTokenContract = getERC20Contract(fromContractAddress, evmApi);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+      const allowance = await fromTokenContract.methods.allowance(params.request.address, routerContract).call() as string;
+
+      if (!allowance || new BigNumber(allowance).gt(params.request.fromAmount)) {
+        return Promise.resolve(undefined);
+      }
+
       const submitStep = {
         name: 'Approve token',
         type: CommonStepType.TOKEN_APPROVAL
@@ -223,13 +257,16 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     const fromAsset = this.chainService.getAssetBySlug(params.quote.pair.from);
     const fromContract = _getContractAddressOfToken(fromAsset) || WIP_ADDRESS;
     const evmApi = this.chainService.getEvmApi(fromAsset.originChain);
-    const transactionConfig = await v2RouterTokenApproval(fromContract, BigInt(params.quote.fromAmount), params.address, evmApi);
+    const versionUsed = checkSwapVersion(params.quote.metadata as string[]);
+    const routerContract = versionUsed === 'v2' ? v2RouterAddress : piperv3SwapRouterAddress;
+    const transactionConfig = await routerTokenApproval(fromContract, BigInt(params.quote.fromAmount), params.address, routerContract, evmApi);
     const chain = fromAsset.originChain;
 
-    const _data = {
+    const _data: TokenSpendingApprovalParams = {
+      spenderAddress: routerContract,
       contractAddress: fromContract,
       amount: params.quote.fromAmount,
-      from: params.address,
+      owner: params.address,
       chain: chain
     };
 
@@ -245,6 +282,7 @@ export class PiperXSwapHandler implements SwapBaseInterface {
 
   public async handleSubmitStep (params: SwapSubmitParams): Promise<SwapSubmitStepData> {
     const fromAsset = this.chainService.getAssetBySlug(params.quote.pair.from);
+    const toAsset = this.chainService.getAssetBySlug(params.quote.pair.to);
     const evmApi = this.chainService.getEvmApi(fromAsset.originChain);
 
     const txData: SwapBaseTxData = {
@@ -261,10 +299,14 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     const toAmountScaled = Math.floor(Number(toAmount) * scaleFactor);
     const toAmountBigInt = BigInt(toAmountScaled);
 
+    const bnToAmount = new BigNumber(toAmount);
+
     const slippageBigInt = BigInt(Math.floor(params.slippage * 10000));
     const minReceive = (toAmountBigInt * (10000n - slippageBigInt)) / (10000n * BigInt(scaleFactor));
 
-    const extrinsic: TransactionConfig = await swap(fromAmount, minReceive, params.quote.metadata as string[], params.address, BigInt(3000000000), evmApi);
+    console.log(minReceive.toString());
+
+    const extrinsic: TransactionConfig = await v3Swap(fromAmount, minReceive, params.quote.metadata as string[], params.address, BigInt(3000000000), evmApi);
 
     return {
       txChain: fromAsset.originChain,
