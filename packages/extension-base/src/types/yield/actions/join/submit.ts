@@ -4,7 +4,7 @@
 import { _Address, ChainType, ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
 
 import { BaseProcessRequestSign, BaseRequestSign, InternalRequestSign, TransactionData } from '../../../transaction';
-import { NominationPoolInfo, ValidatorInfo, YieldPositionInfo } from '../../info';
+import { NominationPoolInfo, ValidatorInfo, YieldPoolType, YieldPositionInfo } from '../../info';
 import { OptimalYieldPath } from './step';
 
 // Result after create extrinsic
@@ -54,7 +54,7 @@ export interface SummaryEarningProcessData {
     token: string;
     amount: string;
     chain: string;
-    method: string;
+    method: YieldPoolType;
   }
 }
 

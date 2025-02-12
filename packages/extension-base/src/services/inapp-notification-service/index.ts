@@ -8,13 +8,14 @@ import { CRON_LISTEN_AVAIL_BRIDGE_CLAIM } from '@subwallet/extension-base/consta
 import { fetchLastestRemindNotificationTime } from '@subwallet/extension-base/constants/remind-notification-time';
 import { CronServiceInterface, ServiceStatus } from '@subwallet/extension-base/services/base/types';
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
+import { _STAKING_CHAIN_GROUP } from '@subwallet/extension-base/services/earning-service/constants';
 import { EventService } from '@subwallet/extension-base/services/event-service';
 import { NotificationDescriptionMap, NotificationTitleMap, ONE_DAY_MILLISECOND } from '@subwallet/extension-base/services/inapp-notification-service/consts';
 import { _BaseNotificationInfo, _NotificationInfo, ClaimAvailBridgeNotificationMetadata, ClaimPolygonBridgeNotificationMetadata, NotificationActionType, NotificationTab, ProcessNotificationMetadata, WithdrawClaimNotificationMetadata } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
 import { AvailBridgeSourceChain, AvailBridgeTransaction, fetchAllAvailBridgeClaimable, fetchPolygonBridgeTransactions, hrsToMillisecond, PolygonTransaction } from '@subwallet/extension-base/services/inapp-notification-service/utils';
 import { KeyringService } from '@subwallet/extension-base/services/keyring-service';
 import DatabaseService from '@subwallet/extension-base/services/storage-service/DatabaseService';
-import { ProcessTransactionData, ProcessType, SummaryEarningProcessData, SwapBaseTxData } from '@subwallet/extension-base/types';
+import { ProcessTransactionData, ProcessType, SummaryEarningProcessData, SwapBaseTxData, YieldPoolType } from '@subwallet/extension-base/types';
 import { GetNotificationParams, RequestSwitchStatusParams } from '@subwallet/extension-base/types/notification';
 import { categoryAddresses, formatNumber } from '@subwallet/extension-base/utils';
 import { isSubstrateAddress } from '@subwallet/keyring';
@@ -419,7 +420,28 @@ export class InappNotificationService implements CronServiceInterface {
       const asset = this.chainService.getAssetBySlug(combineInfo.brief.token);
       const chain = this.chainService.getChainInfoByKey(combineInfo.brief.chain);
       const amount = combineInfo.brief.amount;
-      const method = combineInfo.brief.method;
+      let method: string;
+
+      switch (combineInfo.brief.method) {
+        case YieldPoolType.LIQUID_STAKING:
+          method = 'Liquid staking';
+          break;
+        case YieldPoolType.LENDING:
+          method = 'Lending';
+          break;
+        case YieldPoolType.SINGLE_FARMING:
+          method = 'Single farming';
+          break;
+        case YieldPoolType.NOMINATION_POOL:
+          method = 'Nomination pool';
+          break;
+        case YieldPoolType.PARACHAIN_STAKING:
+          method = 'Parachain staking';
+          break;
+        case YieldPoolType.NATIVE_STAKING:
+          method = _STAKING_CHAIN_GROUP.astar.includes(chain.slug) ? 'dApp staking' : 'Direct nomination';
+          break;
+      }
 
       title = '[{{accountName}}] STAKED {{asset}}'
         .replace('{{asset}}', asset.symbol);

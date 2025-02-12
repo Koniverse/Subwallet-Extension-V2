@@ -194,6 +194,9 @@ const Component = function ({ className }: Props) {
         switch (transaction.process.type) {
           case ProcessType.SWAP:
             return t('Swap confirmation');
+          case ProcessType.EARNING:
+            // TODO: Replace message
+            return t('Earning confirmation');
         }
       }
 

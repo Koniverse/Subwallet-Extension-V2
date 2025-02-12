@@ -19,7 +19,7 @@ interface Props extends ThemeProps{
 const numberMetadata = { maxNumberFormat: 8 };
 
 const Component: React.FC<Props> = (props: Props) => {
-  const { className, quote, logoSize = 24 } = props;
+  const { className, logoSize = 24, quote } = props;
   const assetRegistryMap = useSelector((state) => state.assetRegistry.assetRegistry);
 
   const toAssetInfo = useMemo(() => {
