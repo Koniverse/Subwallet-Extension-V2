@@ -29,6 +29,7 @@ type Props = ThemeProps & {
   listTokensCanPayFee?: string[];
   onSetTokenPayFee?: (token: string) => void;
   currentTokenPayFee?: string;
+  chainValue?: string;
 }
 
 enum ViewMode {
@@ -53,7 +54,9 @@ const OPTIONS: FeeDefaultOption[] = [
   'fast'
 ];
 
-const Component = ({ className, currentTokenPayFee, decimals, feeOptionsInfo, feeType, listTokensCanPayFee, modalId, onSelectOption, onSetTokenPayFee, priceValue, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
+const assetHubChainSlugs = ['paseo_assethub', 'westend_assethub', 'rococo_assethub', 'statemine', 'statemint'];
+
+const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOptionsInfo, feeType, listTokensCanPayFee, modalId, onSelectOption, onSetTokenPayFee, priceValue, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
   const { activeModal, inactiveModal } = useContext(ModalContext);
   const [currentViewMode, setViewMode] = useState<ViewMode>(ViewMode.RECOMMENDED);
@@ -231,6 +234,74 @@ const Component = ({ className, currentTokenPayFee, decimals, feeOptionsInfo, fe
     }, 100);
   }, [activeModal]);
 
+  const renderCustomValueField = () => (
+    <div className='__custom-value-field-wrapper'>
+      <Number
+        className='__converted-custom-value'
+        decimal={decimals}
+        prefix='~ $'
+        value={transformAmount}
+      />
+      <Form.Item
+        className='__custom-value-field'
+        name='customValue'
+        rules={[
+          {
+            validator: customValueValidator
+          }
+        ]}
+        statusHelpAsTooltip={true}
+      >
+        <AmountInput
+          decimals={decimals}
+          disabled={decimals === 0}
+          maxValue='1'
+          showMaxButton={false}
+          tooltip={t('Amount')}
+        />
+      </Form.Item>
+    </div>
+  );
+
+  const renderEvmFeeFields = () => (
+    <div className='__custom-value-field-wrapper'>
+      <Form.Item
+        className='__base-fee-value-field'
+        name='maxFeeValue'
+        rules={[
+          {
+            validator: customMaxFeeValidator
+          }
+        ]}
+        statusHelpAsTooltip={true}
+      >
+        <Input
+          defaultValue={feeDefaultValue?.maxFeePerGas}
+          label='Max fee (GWEI)'
+          placeholder='Enter fee value'
+          type='number'
+        />
+      </Form.Item>
+      <Form.Item
+        className='__priority-fee-value-field'
+        name='priorityFeeValue'
+        rules={[
+          {
+            validator: customPriorityValidator
+          }
+        ]}
+        statusHelpAsTooltip={true}
+      >
+        <Input
+          defaultValue={feeDefaultValue?.maxPriorityFeePerGas}
+          label='Priority fee (GWEI)'
+          placeholder='Enter fee value'
+          type='number'
+        />
+      </Form.Item>
+    </div>
+  );
+
   return (
     <>
       <SwModal
@@ -305,73 +376,15 @@ const Component = ({ className, currentTokenPayFee, decimals, feeOptionsInfo, fe
                 onFinish={_onSelectCustomOption}
                 onValuesChange={onValuesChange}
               >
-                {!(feeType === 'evm')
+                {feeType === 'evm'
                   ? (
-                    <div className={'__custom-value-field-wrapper'}>
-                      <Number
-                        className={'__converted-custom-value'}
-                        decimal={decimals}
-                        prefix={'~ $'}
-                        value={transformAmount}
-                      />
-                      <Form.Item
-                        className={'__custom-value-field'}
-                        name={'customValue'}
-                        rules={[
-                          {
-                            validator: customValueValidator
-                          }
-                        ]}
-                        statusHelpAsTooltip={true}
-                      >
-                        <AmountInput
-                          decimals={decimals}
-                          disabled={decimals === 0}
-                          maxValue={'1'}
-                          showMaxButton={false}
-                          tooltip={t('Amount')}
-                        />
-                      </Form.Item>
-                    </div>
-
+                    renderEvmFeeFields()
                   )
-                  : (
-                    <div className={'__custom-value-field-wrapper'}>
-                      <Form.Item
-                        className={'__base-fee-value-field'}
-                        name={'maxFeeValue'}
-                        rules={[
-                          {
-                            validator: customMaxFeeValidator
-                          }
-                        ]}
-                        statusHelpAsTooltip={true}
-                      >
-                        <Input
-                          defaultValue={feeDefaultValue && feeDefaultValue.maxFeePerGas}
-                          label={'Max fee (GWEI)'}
-                          placeholder={'Enter fee value'}
-                          type={'number'}
-                        />
-                      </Form.Item>
-                      <Form.Item
-                        className={'__priority-fee-value-field'}
-                        name={'priorityFeeValue'}
-                        rules={[
-                          {
-                            validator: customPriorityValidator
-                          }
-                        ]}
-                        statusHelpAsTooltip={true}
-                      >
-                        <Input
-                          defaultValue={feeDefaultValue && feeDefaultValue.maxPriorityFeePerGas}
-                          label={'Priority fee (GWEI)'}
-                          placeholder={'Enter fee value'}
-                          type={'number'}
-                        />
-                      </Form.Item>
-                    </div>)}
+                  : chainValue && assetHubChainSlugs.includes(chainValue)
+                    ? null
+                    : (
+                      renderCustomValueField()
+                    )}
 
               </Form>
             </div>

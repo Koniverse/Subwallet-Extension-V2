@@ -1038,6 +1038,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         </Form>
 
         <FeeEditor
+          chainValue={chainValue}
           currentTokenPayFee={currentTokenPayFee}
           estimateFee={tokenPayFeeAmount || estimatedNativeFee}
           feeOptionsInfo={transferInfo?.feeOptions}
