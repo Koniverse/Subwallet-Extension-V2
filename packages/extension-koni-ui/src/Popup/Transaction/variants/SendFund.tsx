@@ -913,7 +913,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   }, [chainValue, currentAccountProxy?.id, nativeTokenSlug]);
 
   useEffect(() => {
-    if (currentTokenPayFee) {
+    if (currentTokenPayFee && currentTokenPayFee !== nativeTokenSlug) {
       const getEstimatedFee = async () => {
         try {
           const tokenPayFeeAmount = await getAmountForPair({
@@ -1050,7 +1050,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         {nativeTokenSlug && (<FeeEditor
           chainValue={chainValue}
           currentTokenPayFee={currentTokenPayFee}
-          estimateFee={tokenPayFeeAmount || estimatedNativeFee}
+          estimateFee={(currentTokenPayFee !== nativeTokenSlug && !!tokenPayFeeAmount) ? tokenPayFeeAmount : estimatedNativeFee}
           feeOptionsInfo={transferInfo?.feeOptions}
           feeType={transferInfo?.feeType}
           listTokensCanPayFee={listTokensCanPayFee}
