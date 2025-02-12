@@ -31,7 +31,7 @@ import CN from 'classnames';
 import { ArrowSquareDownLeft, ArrowSquareUpRight, BellSimpleRinging, BellSimpleSlash, CheckCircle, Checks, Coins, DownloadSimple, FadersHorizontal, GearSix, Gift, ListBullets, XCircle } from 'phosphor-react';
 import React, { SyntheticEvent, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled, { useTheme } from 'styled-components';
 
 type Props = ThemeProps;
@@ -69,12 +69,14 @@ export const NotificationIconMap = {
 const alertModalId = 'notification-alert-modal';
 
 function Component ({ className = '' }: Props): React.ReactElement<Props> {
+  const [searchParams] = useSearchParams();
+  const paramTransactionProgressId = searchParams.get('transaction-progress-id');
   const { activeModal, checkActive } = useContext(ModalContext);
   const { transactionProgressDetailModal: { open: openTransactionProgressModal } } = useContext(WalletModalContext);
 
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { goBack } = useDefaultNavigate();
+  const { goBack, goHome } = useDefaultNavigate();
   const { token } = useTheme() as Theme;
   const { alertProps, closeAlert, openAlert, updateAlertProps } = useAlert(alertModalId);
   const chainsByAccountType = useGetChainSlugsByAccount();
@@ -205,10 +207,13 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
     };
   }, [activeModal]);
 
+  // todo: may have more conditions
+  const forceGoHome = !!paramTransactionProgressId;
+
   const onClickBack = useCallback(() => {
     setCurrentSearchText('');
-    goBack();
-  }, [goBack]);
+    forceGoHome ? goHome() : goBack();
+  }, [forceGoHome, goBack, goHome]);
 
   const showActiveChainModal = useCallback((chainSlug: string, action: NotificationActionType.WITHDRAW | NotificationActionType.CLAIM) => {
     const onOk = () => {
@@ -526,6 +531,13 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
       clearInterval(timer);
     };
   }, []);
+
+  useEffect(() => {
+    // todo: may have more conditions
+    if (paramTransactionProgressId) {
+      openTransactionProgressModal(paramTransactionProgressId);
+    }
+  }, [openTransactionProgressModal, paramTransactionProgressId]);
 
   return (
     <PageWrapper className={`manage-website-access ${className}`}>
