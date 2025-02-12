@@ -11,7 +11,7 @@ import { getAvailBridgeGatewayContract, getSnowBridgeGatewayContract } from '@su
 import { isAvailChainBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/availBridge';
 import { _isPolygonChainBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/polygonBridge';
 import { _isPosChainBridge, _isPosChainL2Bridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/posBridge';
-import { _getAssetDecimals, _getAssetName, _getAssetOriginChain, _getAssetSymbol, _getChainNativeTokenBasicInfo, _getChainNativeTokenSlug, _getContractAddressOfToken, _getMultiChainAsset, _getOriginChainOfAsset, _getTokenMinAmount, _isChainEvmCompatible, _isNativeToken, _isTokenTransferredByEvm } from '@subwallet/extension-base/services/chain-service/utils';
+import { _getAssetDecimals, _getAssetName, _getAssetOriginChain, _getAssetSymbol, _getChainNativeTokenSlug, _getContractAddressOfToken, _getMultiChainAsset, _getOriginChainOfAsset, _getTokenMinAmount, _isChainEvmCompatible, _isNativeToken, _isTokenTransferredByEvm } from '@subwallet/extension-base/services/chain-service/utils';
 import { TON_CHAINS } from '@subwallet/extension-base/services/earning-service/constants';
 import { SWTransactionResponse } from '@subwallet/extension-base/services/transaction-service/types';
 import { AccountChainType, AccountProxy, AccountProxyType, AccountSignMode, AnalyzedGroup, BasicTxWarningCode, TransactionFee } from '@subwallet/extension-base/types';
@@ -583,6 +583,12 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     setCurrentTokenPayFee(slug);
   }, [setCurrentTokenPayFee]);
 
+  const nativeTokenSlug = useMemo(() => {
+    const chainInfo = chainInfoMap[chainValue];
+
+    return chainInfo && _getChainNativeTokenSlug(chainInfo);
+  }, [chainInfoMap, chainValue]);
+
   const onSubmit: FormCallbacks<TransferParams>['onFinish'] = useCallback((values: TransferParams) => {
     const options: TransferOptions = {
       isTransferAll: isTransferAll,
@@ -819,7 +825,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       }, callback)
         .then((callback))
         .catch((e) => {
-          console.error(e);
+          console.error('Error in subscribeMaxTransfer:', e);
 
           setTransferInfo(undefined);
           validate();
@@ -891,7 +897,11 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           proxyId: currentAccountProxy?.id || ''
         });
 
-        setListTokensCanPayFee(response);
+        const updatedTokens = nativeTokenSlug
+          ? Array.from(new Set([nativeTokenSlug, ...response])) // Ensures no duplicates
+          : response;
+
+        setListTokensCanPayFee(updatedTokens);
       } catch (error) {
         console.error('Error fetching tokens:', error);
       }
@@ -900,12 +910,9 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     fetchTokens().catch((error) => {
       console.error('Unhandled error in fetchTokens:', error);
     });
-  }, [chainValue, currentAccountProxy?.id]);
+  }, [chainValue, currentAccountProxy?.id, nativeTokenSlug]);
 
   useEffect(() => {
-    const chainInfo = chainInfoMap[chainValue];
-    const nativeTokenSlug = chainInfo && _getChainNativeTokenSlug(chainInfo);
-
     if (currentTokenPayFee) {
       const getEstimatedFee = async () => {
         try {
@@ -925,7 +932,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         console.error('Unhandled error in getEstimatedFee:', error);
       });
     }
-  }, [chainInfoMap, chainValue, currentTokenPayFee, estimatedNativeFee]);
+  }, [chainInfoMap, chainValue, currentTokenPayFee, estimatedNativeFee, nativeTokenSlug]);
 
   useRestoreTransaction(form);
 
@@ -1040,7 +1047,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           </Form.Item>
         </Form>
 
-        <FeeEditor
+        {nativeTokenSlug && (<FeeEditor
           chainValue={chainValue}
           currentTokenPayFee={currentTokenPayFee}
           estimateFee={tokenPayFeeAmount || estimatedNativeFee}
@@ -1050,8 +1057,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           loading={loading}
           onSelect={setSelectedTransactionFee}
           onSetTokenPayFee={onSetTokenPayFee}
-          tokenSlug={currentTokenPayFee || assetValue}
-        />
+          tokenSlug={currentTokenPayFee || nativeTokenSlug}
+        />)}
         {
           chainValue !== destChainValue && (
             <div className={'__warning_message_cross_chain'}>
