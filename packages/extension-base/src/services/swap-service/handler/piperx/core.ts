@@ -194,7 +194,7 @@ export const v2Swap = async (
       to: v2RouterAddress.toLowerCase(),
       value: path[0] === WIP_ADDRESS ? amount1.toString() : '0',
       data: encodedCall,
-      gas: gasLimit,
+      gas: (gasLimit * 1.2).toFixed(0),
       maxFeePerGas: priority.maxFeePerGas?.toString(),
       maxPriorityFeePerGas: priority.maxPriorityFeePerGas?.toString()
     };
