@@ -13,12 +13,13 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 
 interface Props extends ThemeProps{
-  quote: SwapQuote
+  quote: SwapQuote,
+  logoSize?: number
 }
 const numberMetadata = { maxNumberFormat: 8 };
 
 const Component: React.FC<Props> = (props: Props) => {
-  const { className, quote } = props;
+  const { className, quote, logoSize = 24 } = props;
   const assetRegistryMap = useSelector((state) => state.assetRegistry.assetRegistry);
 
   const toAssetInfo = useMemo(() => {
@@ -37,7 +38,7 @@ const Component: React.FC<Props> = (props: Props) => {
             className='token-logo'
             isShowSubLogo={true}
             shape='circle'
-            size={24}
+            size={logoSize}
             subNetwork={_getAssetOriginChain(fromAssetInfo)}
             token={quote.pair.from.toLowerCase()}
           />
@@ -61,7 +62,7 @@ const Component: React.FC<Props> = (props: Props) => {
             className='token-logo'
             isShowSubLogo={true}
             shape='circle'
-            size={24}
+            size={logoSize}
             subNetwork={_getAssetOriginChain(toAssetInfo)}
             token={quote.pair.to.toLowerCase()}
           />

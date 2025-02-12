@@ -1,13 +1,12 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { ProcessTransactionData, StepStatus } from '@subwallet/extension-base/types';
+import { CommonStepType, ProcessStep, ProcessTransactionData, StepStatus, SwapStepType } from '@subwallet/extension-base/types';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Icon } from '@subwallet/react-ui';
 import { SwIconProps } from '@subwallet/react-ui/es/icon';
 import CN from 'classnames';
 import { CheckCircle, ProhibitInset, Spinner } from 'phosphor-react';
-import { IconWeight } from 'phosphor-react/src/lib';
 import React, { FC, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
@@ -21,7 +20,7 @@ const Component: FC<Props> = (props: Props) => {
   const { t } = useTranslation();
 
   const iconProp = useMemo<SwIconProps>(() => {
-    const iconInfo = (() => {
+    const iconInfo: SwIconProps = (() => {
       if (progressData.status === StepStatus.COMPLETE) {
         return {
           phosphorIcon: CheckCircle,
@@ -40,15 +39,58 @@ const Component: FC<Props> = (props: Props) => {
     })();
 
     return {
-      phosphorIcon: iconInfo.phosphorIcon,
-      weight: iconInfo.weight as IconWeight,
+      ...iconInfo,
       size: 'md'
     };
   }, [progressData.status]);
 
+  const currentStep: ProcessStep | undefined = useMemo(() => {
+    const first = progressData.steps.find((s) => s.status === StepStatus.PROCESSING);
+
+    if (first) {
+      return first;
+    }
+
+    const second = progressData.steps.slice().reverse().find((s) => [StepStatus.COMPLETE, StepStatus.FAILED].includes(s.status));
+
+    if (second) {
+      return second;
+    }
+
+    return progressData.steps[0];
+  }, [progressData.steps]);
+
   const title = useMemo(() => {
-    return t('Sending token ...');
-  }, [t]);
+    if (progressData.status === StepStatus.COMPLETE) {
+      return t('Success');
+    }
+
+    if (progressData.status === StepStatus.FAILED) {
+      return t('Failed');
+    }
+
+    if (!currentStep) {
+      return '';
+    }
+
+    if (currentStep.type === CommonStepType.XCM) {
+      return t('Transfer token cross-chain');
+    }
+
+    if (currentStep.type === SwapStepType.SWAP) {
+      return t('Swap token');
+    }
+
+    // if (progressData.type === ProcessType.SWAP) {
+    //   //
+    // }
+    //
+    // if (progressData.type === ProcessType.EARNING) {
+    //   //
+    // }
+
+    return '';
+  }, [currentStep, progressData.status, t]);
 
   return (
     <div
@@ -91,6 +133,7 @@ export const CurrentProgressStep = styled(Component)<Props>(({ theme: { token } 
         position: 'absolute',
         inset: 0,
         borderRadius: '100%',
+        backgroundColor: 'currentcolor',
         zIndex: 1,
         opacity: 0.1
       },
@@ -101,28 +144,22 @@ export const CurrentProgressStep = styled(Component)<Props>(({ theme: { token } 
       }
     },
 
-    '&.-processing': {
-      color: token.colorWarning,
+    '.__title': {
+      fontSize: token.fontSize,
+      lineHeight: token.lineHeight
+    },
 
-      '.__icon:before': {
-        backgroundColor: token.colorWarning
-      }
+    '&.-processing': {
+      color: token.colorWarning
+
     },
 
     '&.-complete': {
-      color: token.colorSuccess,
-
-      '.__icon:before': {
-        backgroundColor: token.colorSuccess
-      }
+      color: token.colorSuccess
     },
 
     '&.-failed': {
-      color: token.colorError,
-
-      '.__icon:before': {
-        backgroundColor: token.colorError
-      }
+      color: token.colorError
     }
   });
 });
