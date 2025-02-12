@@ -72,6 +72,7 @@ export interface BriefSwapStep {
 }
 
 export interface ApproveStepMetadata {
+  tokenApprove: string;
   contractAddress: string;
   spenderAddress: string;
   amount?: string;

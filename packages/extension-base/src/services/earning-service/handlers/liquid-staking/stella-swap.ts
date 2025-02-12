@@ -249,8 +249,9 @@ export default class StellaSwapLiquidStakingPoolHandler extends BaseLiquidStakin
 
     if (!allowance || parseInt(allowance) <= 0) {
       const metadata: ApproveStepMetadata = {
-        contractAddress: inputTokenSlug,
-        spenderAddress: this.derivativeAssets[0]
+        tokenApprove: inputTokenSlug,
+        contractAddress: _getContractAddressOfToken(inputTokenInfo),
+        spenderAddress: _getContractAddressOfToken(derivativeTokenInfo)
       };
 
       const step: BaseYieldStepDetail = {
