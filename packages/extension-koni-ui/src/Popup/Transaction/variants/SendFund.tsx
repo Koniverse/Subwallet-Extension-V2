@@ -1047,7 +1047,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           </Form.Item>
         </Form>
 
-        {nativeTokenSlug && (<FeeEditor
+        {!TON_CHAINS.includes(chainValue) && nativeTokenSlug && (<FeeEditor
           chainValue={chainValue}
           currentTokenPayFee={currentTokenPayFee}
           estimateFee={(currentTokenPayFee !== nativeTokenSlug && !!tokenPayFeeAmount) ? tokenPayFeeAmount : estimatedNativeFee}
