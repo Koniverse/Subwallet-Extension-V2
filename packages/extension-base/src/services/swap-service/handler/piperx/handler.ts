@@ -10,27 +10,41 @@ import { BalanceService } from '@subwallet/extension-base/services/balance-servi
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
 import { _getChainNativeTokenSlug, _getContractAddressOfToken, _isNativeToken } from '@subwallet/extension-base/services/chain-service/utils';
 import { BaseStepDetail, BasicTxErrorType, CommonFeeComponent, CommonOptimalPath, CommonStepFeeInfo, CommonStepType, HandleYieldStepData, OptimalSwapPathParams, PiperXValidationMetadata, SwapBaseTxData, SwapEarlyValidation, SwapErrorType, SwapFeeType, SwapProviderId, SwapQuote, SwapRequest, SwapStepType, SwapSubmitParams, SwapSubmitStepData, TokenSpendingApprovalParams, ValidateSwapProcessParams } from '@subwallet/extension-base/types';
-import BigNumber from 'bignumber.js';
+import BigN, { BigNumber } from 'bignumber.js';
 import { TransactionConfig } from 'web3-core';
 
 import { calculateSwapRate, SWAP_QUOTE_TIMEOUT_MAP } from '../../utils';
 import { SwapBaseHandler, SwapBaseInterface } from '../base-handler';
 import { mainnet_v2RouterAddress, piperv3SwapRouterAddress, v2RouterAddress, WIP_ADDRESS } from './constant';
-import {checkSwapVersion, routerTokenApproval, routingExactInput, swap, v3Swap} from './core';
+import { checkSwapVersion, routerTokenApproval, routingExactInput, swap, v3Swap } from './core';
+
+function calculateMinReceive (toAmount: string, slippage: number): bigint {
+  const scaleFactor = 1e18;
+  const toAmountScaled = Math.floor(Number(toAmount) * scaleFactor);
+  const toAmountBigInt = BigInt(toAmountScaled);
+  const bnToAmount = new BigNumber(toAmount);
+  const minReceive2 = bnToAmount.multipliedBy(1 - slippage);
+  const slippageBigInt = BigInt(Math.floor(slippage * 10000));
+  const minReceive = (toAmountBigInt * (10000n - slippageBigInt)) / (10000n * BigInt(scaleFactor));
+
+  console.log('Hehe', Number(minReceive), minReceive2.toString());
+
+  return minReceive;
+}
 
 export class PiperXSwapHandler implements SwapBaseInterface {
   private swapBaseHandler: SwapBaseHandler;
   providerSlug: SwapProviderId;
   isTestnet: boolean;
 
-  constructor (chainService: ChainService, balanceService: BalanceService, isTestnet: boolean) {
+  constructor (chainService: ChainService, balanceService: BalanceService, isTestnet = true) {
     this.swapBaseHandler = new SwapBaseHandler({
       chainService,
       balanceService,
-      providerName: 'PiperX',
-      providerSlug: SwapProviderId.PIPERX
+      providerName: isTestnet ? 'PiperX Testnet' : 'PiperX',
+      providerSlug: isTestnet ? SwapProviderId.PIPERX_TESTNET : SwapProviderId.PIPERX_MAINNET
     });
-    this.providerSlug = SwapProviderId.PIPERX;
+    this.providerSlug = isTestnet ? SwapProviderId.PIPERX_TESTNET : SwapProviderId.PIPERX_MAINNET;
     this.isTestnet = isTestnet;
   }
 
@@ -120,12 +134,26 @@ export class PiperXSwapHandler implements SwapBaseInterface {
 
     const defaultFeeToken = _isNativeToken(fromAsset) ? fromAsset.slug : fromChainNativeTokenSlug;
     const toAmount = router.maxAmountOut.toString();
+    const minReceive = calculateMinReceive(toAmount, request.slippage);
 
+    console.log('router', router);
+    const extrinsic: TransactionConfig = await v3Swap(fromAmount, minReceive, router.bestRoute, request.address, BigInt(3000000000), evmApi);
+    const gasLimit = extrinsic.gas;
+
+    let networkFeeAmount;
+
+    if (extrinsic.maxFeePerGas && gasLimit) {
+      networkFeeAmount = new BigN(extrinsic.maxFeePerGas.toString()).multipliedBy(gasLimit).toFixed(0);
+    }
+
+    console.log('Hmm', networkFeeAmount);
     const networkFee: CommonFeeComponent = {
       tokenSlug: fromChainNativeTokenSlug,
-      amount: '0', // todo
+      amount: networkFeeAmount?.toString() || '0', // todo
       feeType: SwapFeeType.NETWORK_FEE
     };
+
+    console.log('networkFee', networkFee);
 
     try {
       return {
@@ -295,16 +323,9 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     };
     const fromAmount = BigInt(params.quote.fromAmount);
     const toAmount = params.quote.toAmount;
-    const scaleFactor = 1e18;
-    const toAmountScaled = Math.floor(Number(toAmount) * scaleFactor);
-    const toAmountBigInt = BigInt(toAmountScaled);
+    const minReceive = calculateMinReceive(toAmount, params.slippage);
 
-    const bnToAmount = new BigNumber(toAmount);
-
-    const slippageBigInt = BigInt(Math.floor(params.slippage * 10000));
-    const minReceive = (toAmountBigInt * (10000n - slippageBigInt)) / (10000n * BigInt(scaleFactor));
-
-    console.log(minReceive.toString());
+    console.log('minReceive', [minReceive, minReceive.toString()]);
 
     const extrinsic: TransactionConfig = await v3Swap(fromAmount, minReceive, params.quote.metadata as string[], params.address, BigInt(3000000000), evmApi);
 

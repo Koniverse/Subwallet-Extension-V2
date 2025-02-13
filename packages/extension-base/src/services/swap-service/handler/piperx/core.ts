@@ -396,6 +396,7 @@ export const v3Swap = async (
       amountOutMinimum: '1',
       sqrtPriceLimitX96: '0'
     };
+
     console.log('fuck', amount2Min.toString());
 
     if (path[0] === WIP_ADDRESS) {
@@ -408,7 +409,7 @@ export const v3Swap = async (
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
         router.methods.exactInputSingle(exactInputSingleParams).encodeABI(),
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-        router.methods.unwrapWETH9(amount2Min.toString(), address).encodeABI()
+        router.methods.unwrapWETH9(0, address).encodeABI()
       ];
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
