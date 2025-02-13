@@ -425,7 +425,7 @@ export const v3Swap = async (
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
         router.methods.exactInputSingle(exactInputSingleParams).encodeABI(),
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-        router.methods.unwrapWETH9(0, address).encodeABI()
+        router.methods.unwrapWETH9(amount2Min.toString(), address).encodeABI()
       ];
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
