@@ -16,9 +16,9 @@ import { getInputValuesFromString } from '@subwallet/extension-koni-ui/component
 import { EarningInstructionModal } from '@subwallet/extension-koni-ui/components/Modal/Earning';
 import { EARNING_INSTRUCTION_MODAL, STAKE_ALERT_DATA } from '@subwallet/extension-koni-ui/constants';
 import { MktCampaignModalContext } from '@subwallet/extension-koni-ui/contexts/MktCampaignModalContext';
-import { useChainConnection, useFetchChainState, useGetBalance, useGetNativeTokenSlug, useGetYieldPositionForSpecificAccount, useInitValidateTransaction, useNotification, useOneSignProcess, usePreCheckAction, useRestoreTransaction, useSelector, useTransactionContext, useWatchTransaction, useYieldPositionDetail } from '@subwallet/extension-koni-ui/hooks';
+import { useChainConnection, useFetchChainState, useGetBalance, useGetNativeTokenSlug, useGetYieldPositionForSpecificAccount, useInitValidateTransaction, useIsPopup, useNotification, useOneSignProcess, usePreCheckAction, useRestoreTransaction, useSelector, useTransactionContext, useWatchTransaction, useYieldPositionDetail } from '@subwallet/extension-koni-ui/hooks';
 import useGetConfirmationByScreen from '@subwallet/extension-koni-ui/hooks/campaign/useGetConfirmationByScreen';
-import { fetchPoolTarget, getOptimalYieldPath, submitJoinYieldPool, submitProcess, validateYieldProcess } from '@subwallet/extension-koni-ui/messaging';
+import { fetchPoolTarget, getOptimalYieldPath, submitJoinYieldPool, submitProcess, validateYieldProcess, windowOpen } from '@subwallet/extension-koni-ui/messaging';
 import { DEFAULT_YIELD_PROCESS, EarningActionType, earningReducer } from '@subwallet/extension-koni-ui/reducer';
 import { store } from '@subwallet/extension-koni-ui/stores';
 import { AccountAddressItemType, EarnParams, FormCallbacks, FormFieldData, ThemeProps } from '@subwallet/extension-koni-ui/types';
@@ -29,6 +29,7 @@ import CN from 'classnames';
 import { CheckCircle, PlusCircle } from 'phosphor-react';
 import React, { useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { getJoinYieldParams } from '../helper';
@@ -49,6 +50,8 @@ const Component = () => {
   const { t } = useTranslation();
   const notify = useNotification();
   const { activeModal } = useContext(ModalContext);
+  const navigate = useNavigate();
+  const isPopup = useIsPopup();
   const mktCampaignModalContext = useContext(MktCampaignModalContext);
   const { closeAlert, defaultData, goBack, onDone,
     openAlert, persistData,
@@ -108,6 +111,19 @@ const Component = () => {
   const [isFormInvalid, setIsFormInvalid] = useState(true);
 
   const chainState = useFetchChainState(poolInfo?.chain || '');
+
+  const onHandleOneSignConfirmation = useCallback((transactionProgressId: string) => {
+    if (isPopup) {
+      windowOpen({
+        allowedPath: '/transaction-submission',
+        params: {
+          'transaction-progress-id': transactionProgressId
+        }
+      }).then(window.close).catch(console.log);
+    } else {
+      navigate(`/transaction-submission?transaction-progress-id=${transactionProgressId}`);
+    }
+  }, [isPopup, navigate]);
 
   const currentConfirmation = useMemo(() => {
     if (slug) {
@@ -385,7 +401,7 @@ const Component = () => {
   const onSuccess = useCallback(
     (lastStep: boolean, needRollback: boolean): ((rs: SWTransactionResponse) => boolean) => {
       return (rs: SWTransactionResponse): boolean => {
-        const { errors: _errors, id, warnings } = rs;
+        const { errors: _errors, id, processId, warnings } = rs;
 
         if (_errors.length || warnings.length) {
           const error = _errors[0]; // we only handle the first error for now
@@ -422,7 +438,7 @@ const Component = () => {
           });
 
           if (lastStep) {
-            onDone(id);
+            processId ? onHandleOneSignConfirmation(processId) : onDone(id);
 
             return false;
           }
@@ -433,7 +449,7 @@ const Component = () => {
         }
       };
     },
-    [notify, onDone, onError, t]
+    [notify, onDone, onError, onHandleOneSignConfirmation, t]
   );
 
   const onSubmit: FormCallbacks<EarnParams>['onFinish'] = useCallback((values: EarnParams) => {
