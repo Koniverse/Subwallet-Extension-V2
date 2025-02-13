@@ -1,18 +1,19 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
 import { EvmEIP1559FeeOption, FeeCustom, FeeDefaultOption, FeeDetail, FeeOptionKey, TransactionFee } from '@subwallet/extension-base/types';
 import { BN_ZERO } from '@subwallet/extension-base/utils';
 import { AmountInput, BasicInputEvent, RadioGroup } from '@subwallet/extension-koni-ui/components';
-import ChooseFeeTokenModal from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/ChooseFeeTokenModal';
 import { FeeOptionItem } from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/FeeOptionItem';
-import { CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
+import { ChooseFeeTokenModal } from '@subwallet/extension-koni-ui/components/Modal/Swap';
+import { ASSET_HUB_CHAIN_SLUGS, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { FormCallbacks, ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Button, Form, Icon, Input, Logo, ModalContext, Number, SwModal } from '@subwallet/react-ui';
 import { Rule } from '@subwallet/react-ui/es/form';
 import BigN from 'bignumber.js';
 import CN from 'classnames';
-import { PencilSimpleLine } from 'phosphor-react';
+import { CaretLeft, PencilSimpleLine } from 'phosphor-react';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
@@ -26,10 +27,11 @@ type Props = ThemeProps & {
   tokenSlug: string;
   priceValue: number;
   feeType?: string;
-  listTokensCanPayFee?: string[];
-  onSetTokenPayFee?: (token: string) => void;
+  listTokensCanPayFee?: TokenHasBalanceInfo[];
+  onSetTokenPayFee: (token: string) => void;
   currentTokenPayFee?: string;
   chainValue?: string;
+  selectedFeeOption?: TransactionFee
 }
 
 enum ViewMode {
@@ -54,13 +56,12 @@ const OPTIONS: FeeDefaultOption[] = [
   'fast'
 ];
 
-const assetHubChainSlugs = ['paseo_assethub', 'westend_assethub', 'rococo_assethub', 'statemine', 'statemint'];
-
-const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOptionsInfo, feeType, listTokensCanPayFee, modalId, onSelectOption, onSetTokenPayFee, priceValue, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
+const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOptionsInfo, feeType, listTokensCanPayFee, modalId, onSelectOption, onSetTokenPayFee, priceValue, selectedFeeOption, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
   const { activeModal, inactiveModal } = useContext(ModalContext);
   const [currentViewMode, setViewMode] = useState<ViewMode>(ViewMode.RECOMMENDED);
   const [form] = Form.useForm<FormProps>();
+  const [optionSelected, setOptionSelected] = useState<TransactionFee | undefined>(selectedFeeOption);
 
   useEffect(() => {
     if (feeType === 'substrate') {
@@ -112,10 +113,9 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
 
   const _onSelectOption = useCallback((option: TransactionFee) => {
     return () => {
-      onSelectOption(option);
-      inactiveModal(modalId);
+      setOptionSelected(option);
     };
-  }, [inactiveModal, modalId, onSelectOption]);
+  }, []);
 
   const calculateEstimateFee = useCallback((optionKey: FeeOptionKey) => {
     const optionValue = feeOptionsInfo?.options?.[optionKey] as EvmEIP1559FeeOption;
@@ -146,6 +146,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
           decimals: decimals,
           symbol: symbol
         }}
+        isSelected={optionSelected?.feeOption === option}
         key={option}
         onClick={_onSelectOption({ feeOption: option })}
         time={estimatedWaitTime}
@@ -161,16 +162,13 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
       const maxFeeValue = form.getFieldValue('maxFeeValue') as string;
       const priorityFeeValue = form.getFieldValue('priorityFeeValue') as string;
 
-      console.log('maxFeeValue', maxFeeValue);
-      console.log('priorityFeeValue', form.getFieldValue('priorityFeeValue'));
-
       customValue = { maxFeePerGas: maxFeeValue, maxPriorityFeePerGas: priorityFeeValue } as FeeCustom;
     } else {
       customValue = form.getFieldValue('customValue') as FeeCustom;
     }
 
-    return _onSelectOption({ feeCustom: customValue, feeOption: 'custom' })();
-  }, [_onSelectOption, feeType, form]);
+    setOptionSelected({ feeCustom: customValue });
+  }, [feeType, form]);
 
   const customValueValidator = useCallback((rule: Rule, value: string): Promise<void> => {
     if (!value) {
@@ -233,6 +231,17 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
       activeModal(CHOOSE_FEE_TOKEN_MODAL);
     }, 100);
   }, [activeModal]);
+
+  const listSlug = listTokensCanPayFee?.map((item) => item.slug);
+
+  const onClickSubmit = useCallback(() => {
+    if (optionSelected) {
+      onSelectOption(optionSelected);
+    }
+
+    inactiveModal(modalId);
+    form.submit();
+  }, [form, inactiveModal, modalId, onSelectOption, optionSelected]);
 
   const renderCustomValueField = () => (
     <div className='__custom-value-field-wrapper'>
@@ -305,18 +314,27 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
   return (
     <>
       <SwModal
-        className={CN(className)}
+        className={CN(className, 'fee-editor-modal')}
         footer={(
           <Button
             block={true}
             className={'__approve-button'}
-            onClick={form.submit}
+            onClick={onClickSubmit}
           >
-          Approve
+            {t('Approve')}
           </Button>
         )}
         id={modalId}
         onCancel={onCancelModal}
+        rightIconProps={{
+          icon: (
+            <Icon
+              className={CN('__back-button')}
+              phosphorIcon={CaretLeft}
+            />
+          ),
+          onClick: onCancelModal
+        }}
         title={t('Choose fee')}
       >
         {feeType === 'evm' && (
@@ -343,7 +361,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
               token={tokenSlug.toLowerCase()}
             />
             <div className={'__fee-paid-token-symbol'}>{symbol}</div>
-            {listTokensCanPayFee && listTokensCanPayFee?.length > 0
+            {feeType !== 'evm'
               ? (
                 <div
                   className={'__edit-token'}
@@ -380,7 +398,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
                   ? (
                     renderEvmFeeFields()
                   )
-                  : chainValue && assetHubChainSlugs.includes(chainValue)
+                  : chainValue && ASSET_HUB_CHAIN_SLUGS.includes(chainValue)
                     ? null
                     : (
                       renderCustomValueField()
@@ -392,9 +410,10 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
         }
       </SwModal>
       <ChooseFeeTokenModal
-        items={listTokensCanPayFee}
+        estimatedFee={'100'} // todo: remove after testing
+        items={listSlug}
         modalId={CHOOSE_FEE_TOKEN_MODAL}
-        onSetTokenPayFee={onSetTokenPayFee}
+        onSelectItem={onSetTokenPayFee}
         selectedItem={currentTokenPayFee || tokenSlug}
       />
     </>
@@ -405,6 +424,19 @@ export const FeeEditorModal = styled(Component)<Props>(({ theme: { token } }: Pr
   return ({
     '.ant-sw-modal-body': {
       paddingBottom: 0
+    },
+
+    '&.fee-editor-modal': {
+      '.ant-sw-sub-header-container.ant-sw-sub-header-container': {
+        display: 'flex',
+        flexDirection: 'row-reverse'
+      },
+      '.ant-sw-header-left-part': {
+        paddingRight: token.paddingXS
+      },
+      '.ant-sw-header-right-part': {
+        paddingLeft: token.paddingXS
+      }
     },
 
     '.ant-sw-modal-footer': {

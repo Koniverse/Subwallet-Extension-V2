@@ -62,7 +62,7 @@ const Component: React.FC<Props> = (props: Props) => {
               amountToPay={estimatedFee}
               key={index}
               onSelect={onSelectItem}
-              selected={!!selectedItem}
+              selected={selectedItem === item}
               slug={item}
             />
           ))}

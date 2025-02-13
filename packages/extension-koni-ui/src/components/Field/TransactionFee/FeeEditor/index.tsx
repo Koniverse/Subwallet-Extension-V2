@@ -2,13 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { _getAssetDecimals, _getAssetPriceId, _getAssetSymbol } from '@subwallet/extension-base/services/chain-service/utils';
+import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
 import { FeeDetail, TransactionFee } from '@subwallet/extension-base/types';
 import { BN_ZERO } from '@subwallet/extension-base/utils';
-import { BN_TEN } from '@subwallet/extension-koni-ui/constants';
+import { ChooseFeeTokenModal } from '@subwallet/extension-koni-ui/components/Modal/Swap';
+import { ASSET_HUB_CHAIN_SLUGS, BN_TEN, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { useSelector } from '@subwallet/extension-koni-ui/hooks';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
-import { Icon, ModalContext, Number } from '@subwallet/react-ui';
+import { Icon, ModalContext, Number, Tooltip } from '@subwallet/react-ui';
 import BigN from 'bignumber.js';
+import CN from 'classnames';
 import { PencilSimpleLine } from 'phosphor-react';
 import React, { useCallback, useContext, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -37,16 +40,17 @@ type Props = ThemeProps & {
   renderFieldNode?: (params: RenderFieldNodeParams) => React.ReactNode;
   feeType?: string;
   loading?: boolean;
-  listTokensCanPayFee?: string[];
-  onSetTokenPayFee?: (token: string) => void;
+  listTokensCanPayFee?: TokenHasBalanceInfo[];
+  onSetTokenPayFee: (slug: string) => void;
   currentTokenPayFee?: string;
   chainValue?: string;
+  selectedFeeOption?: TransactionFee
 };
 
 // todo: will update dynamic later
 const modalId = 'FeeEditorModalId';
 
-const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, feeOptionsInfo, feeType, isLoading = false, listTokensCanPayFee, loading, onSelect, onSetTokenPayFee, renderFieldNode, tokenSlug }: Props): React.ReactElement<Props> => {
+const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, feeOptionsInfo, feeType, isLoading = false, listTokensCanPayFee, loading, onSelect, onSetTokenPayFee, renderFieldNode, selectedFeeOption, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
   const { activeModal } = useContext(ModalContext);
   const assetRegistry = useSelector((root) => root.assetRegistry.assetRegistry);
@@ -80,9 +84,13 @@ const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, fee
 
   const onClickEdit = useCallback(() => {
     setTimeout(() => {
-      activeModal(modalId);
+      if (chainValue && ASSET_HUB_CHAIN_SLUGS.includes(chainValue)) {
+        activeModal(CHOOSE_FEE_TOKEN_MODAL);
+      } else {
+        activeModal(modalId);
+      }
     }, 100);
-  }, [activeModal]);
+  }, [activeModal, chainValue]);
 
   const onSelectTransactionFee = useCallback((fee: TransactionFee) => {
     onSelect?.(fee);
@@ -106,11 +114,19 @@ const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, fee
     });
   }, [decimals, feeValue, isLoading, onClickEdit, renderFieldNode, symbol, feePriceValue]);
 
+  const isEditButton = useMemo(() => {
+    return !!(chainValue && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) || feeType === 'evm'));
+  }, [chainValue, feeType]);
+
+  const listSlug = listTokensCanPayFee?.map((item) => item.slug);
+
+  console.log('listSlug', listSlug);
+
   return (
     <>
       {
         customFieldNode || (
-          <div className={className}>
+          <div className={CN(className, '__estimate-fee-wrapper')}>
             <div className='__field-left-part'>
               <div className='__field-label'>
                 {t('Estimate fee')}:
@@ -134,13 +150,18 @@ const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, fee
                     prefix={'~ $'}
                     value={convertedFeeValue}
                   />
-                  <div onClick={loading ? undefined : onClickEdit}>
-                    <Icon
-                      className={'__edit-icon'}
-                      customSize={'20px'}
-                      phosphorIcon={PencilSimpleLine}
-                    />
-                  </div>
+                  <Tooltip
+                    placement='leftTop'
+                    title={isEditButton ? undefined : t('Coming soon!')}
+                  >
+                    <div onClick={ isEditButton ? onClickEdit : undefined}>
+                      <Icon
+                        className={'__edit-icon'}
+                        customSize={'20px'}
+                        phosphorIcon={PencilSimpleLine}
+                      />
+                    </div>
+                  </Tooltip>
                 </div>
               </div>
             )}
@@ -159,8 +180,17 @@ const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, fee
         onSelectOption={onSelectTransactionFee}
         onSetTokenPayFee={onSetTokenPayFee}
         priceValue={priceValue}
+        selectedFeeOption={selectedFeeOption}
         symbol={symbol}
         tokenSlug={tokenSlug}
+      />
+
+      <ChooseFeeTokenModal
+        estimatedFee={estimateFee}
+        items={listSlug}
+        modalId={CHOOSE_FEE_TOKEN_MODAL}
+        onSelectItem={onSetTokenPayFee}
+        selectedItem={currentTokenPayFee || tokenSlug}
       />
     </>
   );
@@ -179,6 +209,16 @@ const FeeEditor = styled(Component)<Props>(({ theme: { token } }: Props) => {
         fontSize: 'inherit !important',
         fontWeight: 'inherit !important',
         lineHeight: 'inherit'
+      }
+    },
+
+    '&.__estimate-fee-wrapper': {
+      backgroundColor: token.colorBgSecondary,
+      padding: token.paddingSM,
+      height: token.sizeXXL,
+      borderRadius: token.borderRadiusLG,
+      '.__edit-icon': {
+        color: token['gray-5']
       }
     },
 

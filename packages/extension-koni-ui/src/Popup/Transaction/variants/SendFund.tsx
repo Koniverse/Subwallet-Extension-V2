@@ -13,6 +13,7 @@ import { _isPolygonChainBridge } from '@subwallet/extension-base/services/balanc
 import { _isPosChainBridge, _isPosChainL2Bridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/posBridge';
 import { _getAssetDecimals, _getAssetName, _getAssetOriginChain, _getAssetSymbol, _getChainNativeTokenSlug, _getContractAddressOfToken, _getMultiChainAsset, _getOriginChainOfAsset, _getTokenMinAmount, _isChainEvmCompatible, _isNativeToken, _isTokenTransferredByEvm } from '@subwallet/extension-base/services/chain-service/utils';
 import { TON_CHAINS } from '@subwallet/extension-base/services/earning-service/constants';
+import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
 import { SWTransactionResponse } from '@subwallet/extension-base/services/transaction-service/types';
 import { AccountChainType, AccountProxy, AccountProxyType, AccountSignMode, AnalyzedGroup, BasicTxWarningCode, TransactionFee } from '@subwallet/extension-base/types';
 import { ResponseSubscribeTransfer } from '@subwallet/extension-base/types/balance/transfer';
@@ -21,7 +22,7 @@ import { _reformatAddressWithChain, detectTranslate, isAccountAll } from '@subwa
 import { AccountAddressSelector, AddressInputNew, AddressInputRef, AlertBox, AlertModal, AmountInput, ChainSelector, FeeEditor, HiddenInput, TokenItemType, TokenSelector } from '@subwallet/extension-koni-ui/components';
 import { ADDRESS_INPUT_AUTO_FORMAT_VALUE } from '@subwallet/extension-koni-ui/constants';
 import { MktCampaignModalContext } from '@subwallet/extension-koni-ui/contexts/MktCampaignModalContext';
-import { useAlert, useDefaultNavigate, useFetchChainAssetInfo, useHandleSubmitMultiTransaction, useNotification, usePreCheckAction, useRestoreTransaction, useSelector, useSetCurrentPage, useTransactionContext, useWatchTransaction } from '@subwallet/extension-koni-ui/hooks';
+import { useAlert, useDefaultNavigate, useFetchChainAssetInfo, useGetBalance, useHandleSubmitMultiTransaction, useNotification, usePreCheckAction, useRestoreTransaction, useSelector, useSetCurrentPage, useTransactionContext, useWatchTransaction } from '@subwallet/extension-koni-ui/hooks';
 import useGetConfirmationByScreen from '@subwallet/extension-koni-ui/hooks/campaign/useGetConfirmationByScreen';
 import { approveSpending, cancelSubscription, getAmountForPair, getOptimalTransferProcess, getTokensCanPayFee, isTonBounceableAddress, makeCrossChainTransfer, makeTransfer, subscribeMaxTransfer } from '@subwallet/extension-koni-ui/messaging';
 import { CommonActionType, commonProcessReducer, DEFAULT_COMMON_PROCESS } from '@subwallet/extension-koni-ui/reducer';
@@ -137,6 +138,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const { defaultData, persistData } = useTransactionContext<TransferParams>();
   const { defaultSlug: sendFundSlug } = defaultData;
   const isFirstRender = useIsFirstRender();
+  const priceMap = useSelector((state) => state.price.priceMap);
 
   const [form] = Form.useForm<TransferParams>();
   const formDefault = useMemo((): TransferParams => {
@@ -150,7 +152,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const fromValue = useWatchTransaction('from', form, defaultData);
   const chainValue = useWatchTransaction('chain', form, defaultData);
   const assetValue = useWatchTransaction('asset', form, defaultData);
-
+  const { nativeTokenBalance } = useGetBalance(chainValue, fromValue);
   const assetInfo = useFetchChainAssetInfo(assetValue);
   const { alertProps, closeAlert, openAlert } = useAlert(alertModalId);
 
@@ -159,7 +161,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const { accounts } = useSelector((state: RootState) => state.accountState);
   const { accountProxies, currentAccountProxy } = useSelector((state: RootState) => state.accountState);
   const [autoFormatValue] = useLocalStorage(ADDRESS_INPUT_AUTO_FORMAT_VALUE, false);
-  const [listTokensCanPayFee, setListTokensCanPayFee] = useState<string[]>([]);
+  const [listTokensCanPayFee, setListTokensCanPayFee] = useState<TokenHasBalanceInfo[]>([]);
 
   // TODO: Should manage the states `tokenPayFeeAmount` and `currentTokenPayFee` together.
   const [tokenPayFeeAmount, setTokenPayFeeAmount] = useState<string|undefined>(undefined);
@@ -207,7 +209,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const [isTransferLocalTokenAndPayThatTokenAsFee, setIsTransferLocalTokenAndPayThatTokenAsFee] = useState(false);
 
   // todo: remove after testing
-  console.log('[TESTER] Transfer info:', transferInfo);
+  console.log('[TESTER] Transfer info:', transferInfo, 'priceMap: ', priceMap);
 
   const [processState, dispatchProcessState] = useReducer(commonProcessReducer, DEFAULT_COMMON_PROCESS);
 
@@ -900,10 +902,16 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           proxyId: currentAccountProxy?.id || ''
         });
 
-        const response = _response.map((rs) => rs.slug);
+        const response = _response.map((rs) => ({
+          slug: rs.slug,
+          free: rs.free || '0'
+        }));
 
         const updatedTokens = nativeTokenSlug
-          ? Array.from(new Set([nativeTokenSlug, ...response])) // Ensures no duplicates
+          ? [
+            { slug: nativeTokenSlug, free: '0' }, // Add native token with default balance if necessary
+            ...response.filter((token) => token.slug !== nativeTokenSlug)
+          ]
           : response;
 
         setListTokensCanPayFee(updatedTokens);
@@ -915,7 +923,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     fetchTokens().catch((error) => {
       console.error('Unhandled error in fetchTokens:', error);
     });
-  }, [chainValue, currentAccountProxy?.id, nativeTokenSlug]);
+  }, [chainValue, currentAccountProxy?.id, fromValue, nativeTokenBalance, nativeTokenSlug]);
 
   useEffect(() => {
     if (currentTokenPayFee && currentTokenPayFee !== nativeTokenSlug) {
@@ -1071,6 +1079,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           loading={loading}
           onSelect={setSelectedTransactionFee}
           onSetTokenPayFee={onSetTokenPayFee}
+          selectedFeeOption={selectedTransactionFee}
           tokenSlug={currentTokenPayFee || nativeTokenSlug}
         />)}
         {
