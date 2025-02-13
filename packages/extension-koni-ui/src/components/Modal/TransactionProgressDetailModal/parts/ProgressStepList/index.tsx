@@ -7,7 +7,7 @@ import React, { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
-import { ProgressStepItem } from './ProgressStepItem';
+import { Item } from './Item';
 
 type Props = ThemeProps & {
   progressData: ProcessTransactionData
@@ -26,11 +26,12 @@ const Component: FC<Props> = (props: Props) => {
       <div className='__step-list-container'>
         {
           progressData.steps.map((step, index) => (
-            <ProgressStepItem
+            <Item
+              combineInfo={progressData.combineInfo}
               index={index}
               isLastItem={index === progressData.steps.length - 1}
-              item={step}
               key={step.id}
+              processStep={step}
             />
           ))
         }

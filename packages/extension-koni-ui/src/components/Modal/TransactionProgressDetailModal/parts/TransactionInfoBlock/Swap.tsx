@@ -2,21 +2,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { _getAssetSymbol } from '@subwallet/extension-base/services/chain-service/utils';
-import { ProcessTransactionData, SwapBaseTxData } from '@subwallet/extension-base/types';
+import { SwapBaseTxData } from '@subwallet/extension-base/types';
 import { MetaInfo } from '@subwallet/extension-koni-ui/components';
 import { SwapTransactionBlock } from '@subwallet/extension-koni-ui/components/Swap';
 import { BN_TEN, BN_ZERO } from '@subwallet/extension-koni-ui/constants';
 import { useGetAccountByAddress, useGetChainPrefixBySlug, useSelector } from '@subwallet/extension-koni-ui/hooks';
-import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Number } from '@subwallet/react-ui';
 import BigN from 'bignumber.js';
 import React, { FC, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
-type Props = ThemeProps & {
-  progressData: ProcessTransactionData
-};
+import { TransactionInfoBlockProps } from './types';
+
+type Props = TransactionInfoBlockProps;
 
 const Component: FC<Props> = (props: Props) => {
   const { className, progressData } = props;

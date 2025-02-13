@@ -1,7 +1,7 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { CommonStepType, ProcessStep, ProcessTransactionData, StepStatus, SwapStepType } from '@subwallet/extension-base/types';
+import { BaseStepType, CommonStepType, ProcessStep, ProcessTransactionData, StepStatus, SwapStepType, YieldStepType } from '@subwallet/extension-base/types';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Icon } from '@subwallet/react-ui';
 import { SwIconProps } from '@subwallet/react-ui/es/icon';
@@ -73,12 +73,35 @@ const Component: FC<Props> = (props: Props) => {
       return '';
     }
 
-    if (currentStep.type === CommonStepType.XCM) {
+    if (([
+      CommonStepType.XCM,
+      YieldStepType.XCM
+    ] as BaseStepType[]).includes(currentStep.type)) {
       return t('Transfer token cross-chain');
     }
 
     if (currentStep.type === SwapStepType.SWAP) {
       return t('Swap token');
+    }
+
+    if (([
+      CommonStepType.TOKEN_APPROVAL,
+      YieldStepType.TOKEN_APPROVAL
+    ] as BaseStepType[]).includes(currentStep.type)) {
+      return t('Approve token');
+    }
+
+    if (([
+      YieldStepType.NOMINATE,
+      YieldStepType.JOIN_NOMINATION_POOL,
+      YieldStepType.MINT_VDOT,
+      YieldStepType.MINT_VMANTA,
+      YieldStepType.MINT_LDOT,
+      YieldStepType.MINT_QDOT,
+      YieldStepType.MINT_SDOT,
+      YieldStepType.MINT_STDOT
+    ] as BaseStepType[]).includes(currentStep.type)) {
+      return t('Stake token');
     }
 
     // if (progressData.type === ProcessType.SWAP) {

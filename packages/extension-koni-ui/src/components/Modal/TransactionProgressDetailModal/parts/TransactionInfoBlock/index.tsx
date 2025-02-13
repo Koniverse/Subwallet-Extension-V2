@@ -1,16 +1,15 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { ProcessTransactionData, ProcessType } from '@subwallet/extension-base/types';
-import { ThemeProps } from '@subwallet/extension-koni-ui/types';
+import { ProcessType } from '@subwallet/extension-base/types';
 import React, { FC } from 'react';
 import styled from 'styled-components';
 
+import { Earn } from './Earn';
 import { Swap } from './Swap';
+import { TransactionInfoBlockProps } from './types';
 
-type Props = ThemeProps & {
-  progressData: ProcessTransactionData
-};
+type Props = TransactionInfoBlockProps;
 
 const Component: FC<Props> = (props: Props) => {
   const { className, progressData } = props;
@@ -18,8 +17,15 @@ const Component: FC<Props> = (props: Props) => {
   if (progressData.type === ProcessType.SWAP) {
     return (
       <Swap
-        className={className}
-        progressData={progressData}
+        {...props}
+      />
+    );
+  }
+
+  if (progressData.type === ProcessType.EARNING) {
+    return (
+      <Earn
+        {...props}
       />
     );
   }
