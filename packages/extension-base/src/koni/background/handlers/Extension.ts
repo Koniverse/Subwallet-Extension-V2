@@ -38,6 +38,7 @@ import { _isPosChainBridge, getClaimPosBridge } from '@subwallet/extension-base/
 import { _DEFAULT_MANTA_ZK_CHAIN, _MANTA_ZK_CHAIN_GROUP, _ZK_ASSET_PREFIX, SUFFICIENT_CHAIN } from '@subwallet/extension-base/services/chain-service/constants';
 import { _ChainApiStatus, _ChainConnectionStatus, _ChainState, _NetworkUpsertParams, _SubstrateAdapterQueryArgs, _SubstrateApi, _ValidateCustomAssetRequest, _ValidateCustomAssetResponse, EnableChainParams, EnableMultiChainParams } from '@subwallet/extension-base/services/chain-service/types';
 import { _getAssetDecimals, _getAssetSymbol, _getChainNativeTokenBasicInfo, _getContractAddressOfToken, _getEvmChainId, _getTokenMinAmount, _getTokenOnChainAssetId, _getXcmAssetMultilocation, _isAssetSmartContractNft, _isBridgedToken, _isChainEvmCompatible, _isChainSubstrateCompatible, _isChainTonCompatible, _isCustomAsset, _isLocalToken, _isMantaZkAsset, _isNativeToken, _isPureEvmChain, _isTokenEvmSmartContract, _isTokenTransferredByEvm, _isTokenTransferredByTon } from '@subwallet/extension-base/services/chain-service/utils';
+import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
 import { calculateToAmountByReservePool, FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE } from '@subwallet/extension-base/services/fee-service/utils';
 import { ClaimPolygonBridgeNotificationMetadata, NotificationSetup } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
 import { AppBannerData, AppConfirmationData, AppPopupData } from '@subwallet/extension-base/services/mkt-campaign-service/types';
@@ -1605,14 +1606,15 @@ export default class KoniExtension {
     });
   }
 
-  private async getTokensCanPayFee (request: RequestGetTokensCanPayFee) {
+  private async getTokensCanPayFee (request: RequestGetTokensCanPayFee): Promise<TokenHasBalanceInfo[]> {
     const { chain, feeAmount, proxyId } = request;
 
     const chainService = this.#koniState.chainService;
     const substrateApi = this.#koniState.getSubstrateApi(chain);
 
-    const tokensHasBalance = await this.#koniState.balanceService.getTokensHasBalanceIgnoreNative(proxyId, chain);
-    const tokensHasBalanceInfo = tokensHasBalance.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => token.metadata && token.metadata.multilocation);
+    const tokensHasBalanceInfoMap = await this.#koniState.balanceService.getTokensHasBalanceIgnoreNative(proxyId, chain);
+    const tokensHasBalanceSlug = Object.keys(tokensHasBalanceInfoMap);
+    const tokensHasBalanceInfo = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => token.metadata && token.metadata.multilocation);
 
     const nativeTokenInfo = chainService.getNativeTokenInfo(chain);
 
@@ -1622,7 +1624,7 @@ export default class KoniExtension {
 
     const nativeMultiLocation = nativeTokenInfo.metadata.multilocation;
 
-    const tokensCanPayFee: string[] = [];
+    const tokensCanPayFeeSlug: string[] = [];
 
     await Promise.all(tokensHasBalanceInfo.map(async (tokenInfo) => {
       const tokenSlug = tokenInfo.slug;
@@ -1634,20 +1636,20 @@ export default class KoniExtension {
 
       if (poolInfo && poolInfo.lpToken !== undefined) {
         if (feeAmount === undefined) {
-          tokensCanPayFee.push(tokenSlug);
+          tokensCanPayFeeSlug.push(tokenSlug);
         } else {
           const reserves = await getReserveForPath(substrateApi.api, [nativeTokenInfo, tokenInfo]);
           const amounts = estimateTokensForPath(feeAmount, reserves);
           const liquidityError = checkLiquidityForPath(amounts, reserves);
 
           if (!liquidityError) {
-            tokensCanPayFee.push(tokenSlug);
+            tokensCanPayFeeSlug.push(tokenSlug);
           }
         }
       }
     }));
 
-    return tokensCanPayFee;
+    return tokensCanPayFeeSlug.map((slug) => tokensHasBalanceInfoMap[slug]);
   }
 
   private async getAmountForPair (request: RequestGetAmountForPair) {
