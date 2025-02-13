@@ -406,10 +406,10 @@ export const v3Swap = async (
       tokenIn: path[0],
       tokenOut: path[2],
       fee: path[1],
-      recipient: address,
+      recipient: path[2] === WIP_ADDRESS ? '0x0000000000000000000000000000000000000000' : address,
       deadline: expirationTimestamp,
       amountIn: amount1.toString(),
-      amountOutMinimum: '1',
+      amountOutMinimum: amount2Min.toString(),
       sqrtPriceLimitX96: '0'
     };
 
