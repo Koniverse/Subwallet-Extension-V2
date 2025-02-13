@@ -38,6 +38,7 @@ export interface CalculateMaxTransferable extends TransactionFee {
   substrateApi: _SubstrateApi;
   evmApi: _EvmApi;
   tonApi: _TonApi;
+  recalculateMaxTransferableSpecialCase: (transferInfo: ResponseSubscribeTransfer) => Promise<ResponseSubscribeTransfer>;
 }
 
 export const detectTransferTxType = (srcToken: _ChainAsset, srcChain: _ChainInfo, destChain: _ChainInfo): FeeChainType => {
@@ -62,14 +63,18 @@ export const detectTransferTxType = (srcToken: _ChainAsset, srcChain: _ChainInfo
 };
 
 export const calculateMaxTransferable = async (id: string, request: CalculateMaxTransferable, freeBalance: AmountData, fee: FeeInfo): Promise<ResponseSubscribeTransfer> => {
-  const { destChain, srcChain } = request;
+  const { destChain, recalculateMaxTransferableSpecialCase, srcChain } = request;
   const isXcmTransfer = srcChain.slug !== destChain.slug;
 
+  let maxTransferableAmount: ResponseSubscribeTransfer;
+
   if (isXcmTransfer) {
-    return calculateXCMMaxTransferable(id, request, freeBalance, fee);
+    maxTransferableAmount = await calculateXCMMaxTransferable(id, request, freeBalance, fee);
   } else {
-    return calculateTransferMaxTransferable(id, request, freeBalance, fee);
+    maxTransferableAmount = await calculateTransferMaxTransferable(id, request, freeBalance, fee);
   }
+
+  return recalculateMaxTransferableSpecialCase(maxTransferableAmount);
 };
 
 export const calculateTransferMaxTransferable = async (id: string, request: CalculateMaxTransferable, freeBalance: AmountData, fee: FeeInfo): Promise<ResponseSubscribeTransfer> => {

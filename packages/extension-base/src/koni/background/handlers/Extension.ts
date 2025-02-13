@@ -38,12 +38,13 @@ import { _isPosChainBridge, getClaimPosBridge } from '@subwallet/extension-base/
 import { _DEFAULT_MANTA_ZK_CHAIN, _MANTA_ZK_CHAIN_GROUP, _ZK_ASSET_PREFIX, SUFFICIENT_CHAIN } from '@subwallet/extension-base/services/chain-service/constants';
 import { _ChainApiStatus, _ChainConnectionStatus, _ChainState, _NetworkUpsertParams, _SubstrateAdapterQueryArgs, _SubstrateApi, _ValidateCustomAssetRequest, _ValidateCustomAssetResponse, EnableChainParams, EnableMultiChainParams } from '@subwallet/extension-base/services/chain-service/types';
 import { _getAssetDecimals, _getAssetSymbol, _getChainNativeTokenBasicInfo, _getContractAddressOfToken, _getEvmChainId, _getTokenMinAmount, _getTokenOnChainAssetId, _getXcmAssetMultilocation, _isAssetSmartContractNft, _isBridgedToken, _isChainEvmCompatible, _isChainSubstrateCompatible, _isChainTonCompatible, _isCustomAsset, _isLocalToken, _isMantaZkAsset, _isNativeToken, _isPureEvmChain, _isTokenEvmSmartContract, _isTokenTransferredByEvm, _isTokenTransferredByTon } from '@subwallet/extension-base/services/chain-service/utils';
+import { calculateToAmountByReservePool, FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE } from '@subwallet/extension-base/services/fee-service/utils';
 import { ClaimPolygonBridgeNotificationMetadata, NotificationSetup } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
 import { AppBannerData, AppConfirmationData, AppPopupData } from '@subwallet/extension-base/services/mkt-campaign-service/types';
 import { EXTENSION_REQUEST_URL } from '@subwallet/extension-base/services/request-service/constants';
 import { AuthUrls } from '@subwallet/extension-base/services/request-service/types';
 import { DEFAULT_AUTO_LOCK_TIME } from '@subwallet/extension-base/services/setting-service/constants';
-import { calculateToAmountByReservePool, checkLiquidityForPath, estimateTokensForPath, getReserveForPath } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
+import { checkLiquidityForPath, estimateTokensForPath, getReserveForPath } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
 import { SWTransaction, SWTransactionResponse, SWTransactionResult, TransactionEmitter, ValidateTransactionResponseInput } from '@subwallet/extension-base/services/transaction-service/types';
 import { isProposalExpired, isSupportWalletConnectChain, isSupportWalletConnectNamespace } from '@subwallet/extension-base/services/wallet-connect-service/helpers';
 import { ResultApproveWalletConnectSession, WalletConnectNotSupportRequest, WalletConnectSessionRequest } from '@subwallet/extension-base/services/wallet-connect-service/types';
@@ -1850,7 +1851,7 @@ export default class KoniExtension {
   }
 
   private async subscribeMaxTransferable (request: RequestSubscribeTransfer, id: string, port: chrome.runtime.Port): Promise<ResponseSubscribeTransfer> {
-    const { address, chain, destChain: _destChain, feeCustom, feeOption, token } = request;
+    const { address, chain, destChain: _destChain, feeCustom, feeOption, isTransferLocalTokenAndPayThatTokenAsFee, token } = request;
     const cb = createSubscription<'pri(transfer.subscribe)'>(id, port);
 
     const srcToken = token ? this.#koniState.chainService.getAssetBySlug(token) : this.#koniState.chainService.getNativeTokenInfo(chain);
@@ -1866,6 +1867,23 @@ export default class KoniExtension {
       throw new Error('Destination token not found');
     }
 
+    const recalculateMaxTransferableSpecialCase = async (transferInfo: ResponseSubscribeTransfer): Promise<ResponseSubscribeTransfer> => {
+      if (isTransferLocalTokenAndPayThatTokenAsFee) {
+        const nativeTokenSlug = this.#koniState.chainService.getNativeTokenInfo(chain).slug;
+        const estimatedFeeNative = (BigInt(transferInfo.feeOptions.estimatedFee) * BigInt(FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE) / BigInt(100)).toString();
+        const estimatedFeeLocal = await this.getAmountForPair({
+          nativeTokenSlug: nativeTokenSlug,
+          toTokenSlug: token,
+          nativeTokenFeeAmount: estimatedFeeNative
+        });
+
+        transferInfo.feeOptions.estimatedFee = estimatedFeeNative;
+        transferInfo.maxTransferable = (BigInt(transferInfo.maxTransferable) - BigInt(estimatedFeeLocal)).toString();
+      }
+
+      return transferInfo;
+    };
+
     const _request: CalculateMaxTransferable = {
       address: address,
       destChain,
@@ -1876,7 +1894,8 @@ export default class KoniExtension {
       srcChain,
       srcToken,
       substrateApi: this.#koniState.chainService.getSubstrateApi(chain),
-      tonApi: this.#koniState.chainService.getTonApi(chain)
+      tonApi: this.#koniState.chainService.getTonApi(chain),
+      recalculateMaxTransferableSpecialCase
     };
 
     const subscription = combineLatest({

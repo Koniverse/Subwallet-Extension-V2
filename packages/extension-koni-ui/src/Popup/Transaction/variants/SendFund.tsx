@@ -806,24 +806,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
 
     const callback = (transferInfo: ResponseSubscribeTransfer) => {
       if (!cancel) {
-        if (isTransferLocalTokenAndPayThatTokenAsFee) {
-          const estimateFeeNative = (BigInt(transferInfo.feeOptions.estimatedFee) * BigInt(105) / BigInt(100)).toString();
-
-          getAmountForPair({
-            nativeTokenSlug,
-            toTokenSlug: assetValue,
-            nativeTokenFeeAmount: estimateFeeNative
-          }).then((toAmount) => {
-            transferInfo.feeOptions.estimatedFee = estimateFeeNative;
-            transferInfo.maxTransferable = (BigInt(transferInfo.maxTransferable) - BigInt(toAmount)).toString();
-
-            setTransferInfo(transferInfo);
-          }).catch((e) => {
-            console.error('Error in getAmountForPair:', e);
-          });
-        } else {
-          setTransferInfo(transferInfo);
-        }
+        setTransferInfo(transferInfo);
 
         id = transferInfo.id;
 
@@ -840,7 +823,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         token: assetValue,
         destChain: destChainValue,
         feeOption: selectedTransactionFee?.feeOption,
-        feeCustom: selectedTransactionFee?.feeCustom
+        feeCustom: selectedTransactionFee?.feeCustom,
+        isTransferLocalTokenAndPayThatTokenAsFee
       }, callback)
         .then((callback))
         .catch((e) => {
