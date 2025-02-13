@@ -12,7 +12,7 @@ import { isBounceableAddress } from '@subwallet/extension-base/services/balance-
 import { _TRANSFER_CHAIN_GROUP } from '@subwallet/extension-base/services/chain-service/constants';
 import { _EvmApi, _SubstrateApi, _TonApi } from '@subwallet/extension-base/services/chain-service/types';
 import { _getAssetDecimals, _getChainExistentialDeposit, _getChainNativeTokenBasicInfo, _getContractAddressOfToken, _getTokenMinAmount, _isNativeToken, _isTokenEvmSmartContract, _isTokenTonSmartContract } from '@subwallet/extension-base/services/chain-service/utils';
-import { calculateToAmountByReservePool } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
+import { calculateToAmountByReservePool, FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE } from '@subwallet/extension-base/services/fee-service/utils';
 import { isSubstrateTransaction, isTonTransaction } from '@subwallet/extension-base/services/transaction-service/helpers';
 import { OptionalSWTransaction, SWTransactionInput, SWTransactionResponse } from '@subwallet/extension-base/services/transaction-service/types';
 import { AccountSignMode, BasicTxErrorType, BasicTxWarningCode, EvmEIP1559FeeOption, EvmFeeInfo, TransferTxErrorType } from '@subwallet/extension-base/types';
@@ -370,7 +370,7 @@ export function checkSupportForTransaction (validationResponse: SWTransactionRes
   }
 }
 
-export async function estimateFeeForTransaction (validationResponse: SWTransactionResponse, transaction: OptionalSWTransaction, chainInfo: _ChainInfo, evmApi: _EvmApi, substrateApi: _SubstrateApi, feeInfo: EvmFeeInfo, nativeTokenInfo: _ChainAsset, tokenPayFeeInfo: _ChainAsset | undefined): Promise<FeeData> {
+export async function estimateFeeForTransaction (validationResponse: SWTransactionResponse, transaction: OptionalSWTransaction, chainInfo: _ChainInfo, evmApi: _EvmApi, substrateApi: _SubstrateApi, feeInfo: EvmFeeInfo, nativeTokenInfo: _ChainAsset, tokenPayFeeInfo: _ChainAsset | undefined, isTransferLocalTokenAndPayThatTokenAsFee: boolean | undefined): Promise<FeeData> {
   const estimateFee: FeeData = {
     symbol: '',
     decimals: 0,
@@ -419,9 +419,11 @@ export async function estimateFeeForTransaction (validationResponse: SWTransacti
   }
 
   if (tokenPayFeeInfo) {
+    const estimatedFeeAmount = isTransferLocalTokenAndPayThatTokenAsFee ? (BigInt(estimateFee.value) * BigInt(FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE) / BigInt(100)).toString() : estimateFee.value;
+
     estimateFee.decimals = tokenPayFeeInfo.decimals || 0;
     estimateFee.symbol = tokenPayFeeInfo.symbol;
-    estimateFee.value = await calculateToAmountByReservePool(substrateApi.api, nativeTokenInfo, tokenPayFeeInfo, estimateFee.value);
+    estimateFee.value = await calculateToAmountByReservePool(substrateApi.api, nativeTokenInfo, tokenPayFeeInfo, estimatedFeeAmount);
   }
 
   return estimateFee;

@@ -1,17 +1,23 @@
 // Copyright 2019-2022 @subwallet/extension-base
 // SPDX-License-Identifier: Apache-2.0
 
+import { _ChainAsset } from '@subwallet/chain-list/types';
 import { GAS_PRICE_RATIO, NETWORK_MULTI_GAS_FEE } from '@subwallet/extension-base/constants';
 import { _EvmApi } from '@subwallet/extension-base/services/chain-service/types';
+import { estimateTokensForPool, getReserveForPool } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
 import { EvmEIP1559FeeOption, EvmFeeInfo, EvmFeeInfoCache, InfuraFeeInfo, InfuraThresholdInfo } from '@subwallet/extension-base/types';
 import { BN_WEI, BN_ZERO } from '@subwallet/extension-base/utils';
 import BigN from 'bignumber.js';
+
+import { ApiPromise } from '@polkadot/api';
 
 import { gasStation, POLYGON_GAS_INDEXER } from '../../balance-service/transfer/xcm/polygonBridge';
 
 const INFURA_API_KEY = process.env.INFURA_API_KEY || '';
 const INFURA_API_KEY_SECRET = process.env.INFURA_API_KEY_SECRET || '';
 const INFURA_AUTH = 'Basic ' + Buffer.from(INFURA_API_KEY + ':' + INFURA_API_KEY_SECRET).toString('base64');
+
+export const FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE = 105; // percentage
 
 export const parseInfuraFee = (info: InfuraFeeInfo, threshold: InfuraThresholdInfo): EvmFeeInfo => {
   const base = new BigN(info.estimatedBaseFee).multipliedBy(BN_WEI);
@@ -217,4 +223,10 @@ export const calculateGasFeeParams = async (web3: _EvmApi, networkKey: string, u
       options: undefined
     };
   }
+};
+
+export const calculateToAmountByReservePool = async (api: ApiPromise, fromToken: _ChainAsset, toToken: _ChainAsset, fromAmount: string): Promise<string> => {
+  const reserve = await getReserveForPool(api, fromToken, toToken);
+
+  return estimateTokensForPool(fromAmount, reserve);
 };

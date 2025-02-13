@@ -41,6 +41,7 @@ export interface SWTransactionInput extends SwInputBase, Partial<Pick<SWTransact
   errors?: SWTransaction['errors'];
   edAsWarning?: boolean;
   isTransferAll?: boolean;
+  isTransferLocalTokenAndPayThatTokenAsFee?: boolean;
   resolveOnDone?: boolean;
   skipFeeValidation?: boolean;
 }

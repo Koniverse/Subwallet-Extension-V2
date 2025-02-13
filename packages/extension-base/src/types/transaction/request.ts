@@ -16,6 +16,7 @@ export interface RequestBaseTransfer {
   value?: string;
   transferAll?: boolean;
   transferBounceable?: boolean;
+  isTransferLocalTokenAndPayThatTokenAsFee?: boolean;
 }
 
 export interface RequestCheckTransfer extends RequestBaseTransfer, TransactionFee {

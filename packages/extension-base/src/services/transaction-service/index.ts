@@ -146,7 +146,7 @@ export default class TransactionService {
     const id = getId();
     const feeInfo = await this.state.feeService.subscribeChainFee(id, chain, 'evm') as EvmFeeInfo;
 
-    validationResponse.estimateFee = await estimateFeeForTransaction(validationResponse, transaction, chainInfo, evmApi, substrateApi, feeInfo, nativeTokenInfo, tokenPayFeeInfo);
+    validationResponse.estimateFee = await estimateFeeForTransaction(validationResponse, transaction, chainInfo, evmApi, substrateApi, feeInfo, nativeTokenInfo, tokenPayFeeInfo, transactionInput.isTransferLocalTokenAndPayThatTokenAsFee);
 
     const chainInfoMap = this.state.chainService.getChainInfoMap();
 
