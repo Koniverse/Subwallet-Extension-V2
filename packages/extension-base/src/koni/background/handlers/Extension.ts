@@ -1476,7 +1476,7 @@ export default class KoniExtension {
   }
 
   private async makeCrossChainTransfer (inputData: RequestCrossChainTransfer): Promise<SWTransactionResponse> {
-    const { destinationNetworkKey, feeCustom, feeOption, from, originNetworkKey, to, tokenPayFeeSlug, tokenSlug, transferAll, transferBounceable, value, isTransferLocalTokenAndPayThatTokenAsFee } = inputData;
+    const { destinationNetworkKey, feeCustom, feeOption, from, isTransferLocalTokenAndPayThatTokenAsFee, originNetworkKey, to, tokenPayFeeSlug, tokenSlug, transferAll, transferBounceable, value } = inputData;
 
     const originTokenInfo = this.#koniState.getAssetBySlug(tokenSlug);
     const destinationTokenInfo = this.#koniState.getXcmEqualAssetByChain(destinationNetworkKey, tokenSlug);
