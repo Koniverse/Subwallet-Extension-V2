@@ -6,7 +6,7 @@ import { EvmApi } from '@subwallet/extension-base/services/chain-service/handler
 import { calculateGasFeeParams } from '@subwallet/extension-base/services/fee-service/utils';
 import { TransactionConfig } from 'web3-core';
 
-import { defaultTokens, fee2TickSpace, multicallAddress, piperv3QuoterAddress, piperv3SwapRouterAddress, PIPERX_SWAP_ADDRESSES, v2RouterAddress, WIP_ADDRESS } from './constant';
+import { fee2TickSpace, PIPERX_SWAP_ADDRESSES } from './constant';
 import { abi, multicallAbi, piperv3QuoterAbi, piperv3SwapRouterAbi, v2RouterAbi } from './piperx_abi';
 
 export const routingExactInput = async (
@@ -14,10 +14,11 @@ export const routingExactInput = async (
   tokenOut: string,
   tokenInAmount: bigint,
   signerAddress: string,
-  evmApi: EvmApi
+  evmApi: EvmApi,
+  chain: 'testnet' | 'mainnet'
 ): Promise<{ bestRoute: string[]; maxAmountOut: bigint }> => {
-  const { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 } = await v2RoutingExactInput(tokenIn, tokenOut, tokenInAmount, evmApi);
-  const { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 } = await v3RoutingExactInput(tokenIn, tokenOut, tokenInAmount, signerAddress, evmApi);
+  const { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 } = await v2RoutingExactInput(tokenIn, tokenOut, tokenInAmount, evmApi, chain);
+  const { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 } = await v3RoutingExactInput(tokenIn, tokenOut, tokenInAmount, signerAddress, evmApi, chain);
 
   return maxAmountOutV2 > maxAmountOutV3
     ? { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 }
@@ -30,12 +31,13 @@ export const swap = async (
   path: string[],
   address: string,
   expirationTimestamp: bigint,
-  evmApi: EvmApi
+  evmApi: EvmApi,
+  chain: 'testnet' | 'mainnet'
 ) => {
   if (path[1].length < 10) { // v3 swap
-    return await v3Swap(amount1, amount2Min, path, address, expirationTimestamp, evmApi);
+    return await v3Swap(amount1, amount2Min, path, address, expirationTimestamp, evmApi, chain);
   } else { // v2 swap
-    return await v2Swap(amount1, amount2Min, path, address, expirationTimestamp, evmApi);
+    return await v2Swap(amount1, amount2Min, path, address, expirationTimestamp, evmApi, chain);
   }
 };
 
@@ -49,15 +51,15 @@ export const checkSwapVersion = (
   }
 };
 
-interface Reserves {
-  _reserve0: string;
-  _reserve1: string;
-  _blockTimestampLast: string;
-}
+// interface Reserves {
+//   _reserve0: string;
+//   _reserve1: string;
+//   _blockTimestampLast: string;
+// }
 
-type Slot0 = {
-  sqrtPriceX96: string;
-};
+// type Slot0 = {
+//   sqrtPriceX96: string;
+// };
 
 interface MulticallResult {
   success: boolean;
@@ -107,7 +109,11 @@ export const v2RoutingExactInput = async (
   let maxAmountOut = BigInt(0);
 
   try {
-    const v2RouterContract = getWeb3Contract(PIPERX_SWAP_ADDRESSES[chain].v2RouterAddress, evmApi, v2RouterAbi);
+    const v2RouterAddress = PIPERX_SWAP_ADDRESSES[chain].v2RouterAddress;
+    const defaultTokens = PIPERX_SWAP_ADDRESSES[chain].defaultTokens;
+    const multicallAddress = PIPERX_SWAP_ADDRESSES[chain].multicallAddress;
+
+    const v2RouterContract = getWeb3Contract(v2RouterAddress, evmApi, v2RouterAbi);
 
     // Direct route calculation
     try {
@@ -181,8 +187,12 @@ export const v2Swap = async (
   path: string[],
   address: string,
   expirationTimestamp: bigint,
-  evmApi: EvmApi
+  evmApi: EvmApi,
+  chain: 'testnet' | 'mainnet'
 ) => {
+  const WIP_ADDRESS = PIPERX_SWAP_ADDRESSES[chain].WIP_ADDRESS;
+  const v2RouterAddress = PIPERX_SWAP_ADDRESSES[chain].v2RouterAddress;
+
   try {
     const router = getWeb3Contract(v2RouterAddress, evmApi, v2RouterAbi);
     let call;
@@ -320,8 +330,12 @@ export const v3RoutingExactInput = async (
   tokenOut: string,
   tokenInAmount: bigint,
   signerAddress: string,
-  evmApi: EvmApi
+  evmApi: EvmApi,
+  chain: 'testnet' | 'mainnet'
 ): Promise<{ bestRoute: string[]; maxAmountOut: bigint }> => {
+  const piperv3QuoterAddress = PIPERX_SWAP_ADDRESSES[chain].piperv3QuoterAddress;
+  const multicallAddress = PIPERX_SWAP_ADDRESSES[chain].multicallAddress;
+
   const quoterContract = getWeb3Contract(piperv3QuoterAddress, evmApi, piperv3QuoterAbi);
   let bestRoute: string[] = [];
   let maxAmountOut = BigInt(0);
@@ -376,11 +390,15 @@ export const v3Swap = async (
   path: string[],
   address: string,
   expirationTimestamp: bigint,
-  evmApi: EvmApi
+  evmApi: EvmApi,
+  chain: 'testnet' | 'mainnet'
 ) => {
   if (path.length !== 3) {
     throw new Error('path must contain 3 elements');
   }
+
+  const piperv3SwapRouterAddress = PIPERX_SWAP_ADDRESSES[chain].piperv3SwapRouterAddress;
+  const WIP_ADDRESS = PIPERX_SWAP_ADDRESSES[chain].WIP_ADDRESS;
 
   try {
     const router = getWeb3Contract(piperv3SwapRouterAddress, evmApi, piperv3SwapRouterAbi);
@@ -407,7 +425,7 @@ export const v3Swap = async (
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
         router.methods.exactInputSingle(exactInputSingleParams).encodeABI(),
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-        router.methods.unwrapWETH9(amount2Min.toString(), address).encodeABI()
+        router.methods.unwrapWETH9(0, address).encodeABI()
       ];
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
