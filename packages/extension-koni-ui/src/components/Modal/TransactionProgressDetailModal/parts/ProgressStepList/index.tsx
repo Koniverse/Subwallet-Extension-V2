@@ -47,6 +47,10 @@ export const ProgressStepList = styled(Component)<Props>(({ theme: { token } }: 
       lineHeight: token.lineHeightHeading5,
       color: token.colorTextLight1,
       marginBottom: 24
+    },
+    '.__step-list-container': {
+      paddingLeft: token.padding,
+      paddingRight: token.padding
     }
   });
 });

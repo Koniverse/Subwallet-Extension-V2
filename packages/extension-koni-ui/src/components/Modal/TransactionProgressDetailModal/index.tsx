@@ -1,13 +1,11 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
 import { ProcessTransactionData, ProcessType, ResponseSubscribeProcessById } from '@subwallet/extension-base/types';
 import { TRANSACTION_PROGRESS_DETAIL_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { cancelSubscription, subscribeProcess } from '@subwallet/extension-koni-ui/messaging';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Button, ModalContext, SwModal } from '@subwallet/react-ui';
-import { SwIconProps } from '@subwallet/react-ui/es/icon';
 import React, { FC, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
@@ -20,21 +18,6 @@ type Props = ThemeProps & {
   processId: string;
   onCancel: () => void;
 };
-
-export interface ActionInfo {
-  title: string;
-  extrinsicType: ExtrinsicType;
-  backgroundColor: string;
-  leftIcon?: SwIconProps['phosphorIcon'];
-  disabled?: boolean;
-  isRead?: boolean;
-}
-
-export interface BriefActionInfo {
-  icon: ActionInfo['leftIcon'];
-  title: ActionInfo['title'];
-  backgroundColor?: ActionInfo['backgroundColor'];
-}
 
 const modalId = TRANSACTION_PROGRESS_DETAIL_MODAL;
 
