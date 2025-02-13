@@ -169,7 +169,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
       customValue = form.getFieldValue('customValue') as FeeCustom;
     }
 
-    return _onSelectOption({ feeCustom: customValue })();
+    return _onSelectOption({ feeCustom: customValue, feeOption: 'custom' })();
   }, [_onSelectOption, feeType, form]);
 
   const customValueValidator = useCallback((rule: Rule, value: string): Promise<void> => {
