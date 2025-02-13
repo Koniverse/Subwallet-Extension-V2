@@ -6,8 +6,8 @@ import { EvmApi } from '@subwallet/extension-base/services/chain-service/handler
 import { calculateGasFeeParams } from '@subwallet/extension-base/services/fee-service/utils';
 import { TransactionConfig } from 'web3-core';
 
-import { defaultTokens, fee2TickSpace, multicallAddress, piperv3FactoryAddress, piperv3QuoterAddress, piperv3SwapRouterAddress, v2ComputeAddress, v2RouterAddress, WIP_ADDRESS } from './constant';
-import { abi, multicallAbi, piperv3FactoryAbi, piperv3PoolAbi, piperv3QuoterAbi, piperv3SwapRouterAbi, v2PoolAbi, v2RouterAbi } from './piperx_abi';
+import { defaultTokens, fee2TickSpace, multicallAddress, piperv3QuoterAddress, piperv3SwapRouterAddress, PIPERX_SWAP_ADDRESSES, v2RouterAddress, WIP_ADDRESS } from './constant';
+import { abi, multicallAbi, piperv3QuoterAbi, piperv3SwapRouterAbi, v2RouterAbi } from './piperx_abi';
 
 export const routingExactInput = async (
   tokenIn: string,
@@ -19,10 +19,9 @@ export const routingExactInput = async (
   const { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 } = await v2RoutingExactInput(tokenIn, tokenOut, tokenInAmount, evmApi);
   const { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 } = await v3RoutingExactInput(tokenIn, tokenOut, tokenInAmount, signerAddress, evmApi);
 
-  return { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 };
-  // return maxAmountOutV2 > maxAmountOutV3
-  //   ? { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 }
-  //   : { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 };
+  return maxAmountOutV2 > maxAmountOutV3
+    ? { bestRoute: bestRouteV2, maxAmountOut: maxAmountOutV2 }
+    : { bestRoute: bestRouteV3, maxAmountOut: maxAmountOutV3 };
 };
 
 export const swap = async (
@@ -67,47 +66,48 @@ interface MulticallResult {
 
 type MulticallResponse = MulticallResult[];
 
-export const v2GetPrice = async (
-  token1: string,
-  token2: string,
-  evmApi: EvmApi
-) => {
-  const pairAddress = v2ComputeAddress(token1, token2);
-  const pairContract = getWeb3Contract(pairAddress, evmApi, v2PoolAbi);
-
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    const reserve = (await pairContract.methods.getReserves().call()) as Reserves;
-
-    // Determine token order (tokens are stored in ascending order by address in Uniswap V2)
-    const token1_ = token1.toLowerCase() < token2.toLowerCase() ? token1 : token2;
-
-    const reserve0 = reserve._reserve0;
-    const reserve1 = reserve._reserve1;
-
-    // Calculate price based on reserves
-    return token1_ === token1
-      // @ts-ignore
-      ? reserve1 / reserve0
-      // @ts-ignore
-      : reserve0 / reserve1;
-  } catch (error) {
-    console.error('Error fetching reserves:', error);
-    throw error;
-  }
-};
+// export const v2GetPrice = async (
+//   token1: string,
+//   token2: string,
+//   evmApi: EvmApi
+// ) => {
+//   const pairAddress = v2ComputeAddress(token1, token2);
+//   const pairContract = getWeb3Contract(pairAddress, evmApi, v2PoolAbi);
+//
+//   try {
+//     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+//     const reserve = (await pairContract.methods.getReserves().call()) as Reserves;
+//
+//     // Determine token order (tokens are stored in ascending order by address in Uniswap V2)
+//     const token1_ = token1.toLowerCase() < token2.toLowerCase() ? token1 : token2;
+//
+//     const reserve0 = reserve._reserve0;
+//     const reserve1 = reserve._reserve1;
+//
+//     // Calculate price based on reserves
+//     return token1_ === token1
+//       // @ts-ignore
+//       ? reserve1 / reserve0
+//       // @ts-ignore
+//       : reserve0 / reserve1;
+//   } catch (error) {
+//     console.error('Error fetching reserves:', error);
+//     throw error;
+//   }
+// };
 
 export const v2RoutingExactInput = async (
   tokenIn: string,
   tokenOut: string,
   tokenInAmount: bigint,
-  evmApi: EvmApi
+  evmApi: EvmApi,
+  chain: 'testnet' | 'mainnet'
 ): Promise<{ bestRoute: string[]; maxAmountOut: bigint }> => {
   let bestRoute: string[] = [];
   let maxAmountOut = BigInt(0);
 
   try {
-    const v2RouterContract = getWeb3Contract(v2RouterAddress, evmApi, v2RouterAbi);
+    const v2RouterContract = getWeb3Contract(PIPERX_SWAP_ADDRESSES[chain].v2RouterAddress, evmApi, v2RouterAbi);
 
     // Direct route calculation
     try {
@@ -278,42 +278,42 @@ export const routerTokenApproval = async (
   }
 };
 
-export const v3GetPrice = async (
-  token1: string,
-  token2: string,
-  evmApi: EvmApi,
-  fee = 3000 // Default to 0.3% fee tier
-): Promise<number> => {
-  // Compute pool address using V3 factory
-  const factory = getWeb3Contract(piperv3FactoryAddress, evmApi, piperv3FactoryAbi);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-  const poolAddress = await factory.methods.getPool(token1, token2, fee).call();
-
-  if (poolAddress === '0x0000000000000000000000000000000000000000') {
-    throw new Error('Pool does not exist');
-  }
-
-  const poolContract = getWeb3Contract(poolAddress as string, evmApi, piperv3PoolAbi);
-
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-    const slot0: Slot0 = await poolContract.methods.slot0().call();
-
-    const sqrtPriceX96 = slot0.sqrtPriceX96;
-
-    // Convert sqrtPriceX96 to regular price
-    const price = (Number(sqrtPriceX96) / 2 ** 96) ** 2;
-
-    // Determine if price needs to be inverted based on token order
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-    const token0: string = await poolContract.methods.token0().call();
-
-    return token0.toLowerCase() === token1.toLowerCase() ? price : 1 / price;
-  } catch (error) {
-    console.error('Error fetching V3 price:', error);
-    throw error;
-  }
-};
+// export const v3GetPrice = async (
+//   token1: string,
+//   token2: string,
+//   evmApi: EvmApi,
+//   fee = 3000 // Default to 0.3% fee tier
+// ): Promise<number> => {
+//   // Compute pool address using V3 factory
+//   const factory = getWeb3Contract(piperv3FactoryAddress, evmApi, piperv3FactoryAbi);
+//   // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+//   const poolAddress = await factory.methods.getPool(token1, token2, fee).call();
+//
+//   if (poolAddress === '0x0000000000000000000000000000000000000000') {
+//     throw new Error('Pool does not exist');
+//   }
+//
+//   const poolContract = getWeb3Contract(poolAddress as string, evmApi, piperv3PoolAbi);
+//
+//   try {
+//     // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+//     const slot0: Slot0 = await poolContract.methods.slot0().call();
+//
+//     const sqrtPriceX96 = slot0.sqrtPriceX96;
+//
+//     // Convert sqrtPriceX96 to regular price
+//     const price = (Number(sqrtPriceX96) / 2 ** 96) ** 2;
+//
+//     // Determine if price needs to be inverted based on token order
+//     // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+//     const token0: string = await poolContract.methods.token0().call();
+//
+//     return token0.toLowerCase() === token1.toLowerCase() ? price : 1 / price;
+//   } catch (error) {
+//     console.error('Error fetching V3 price:', error);
+//     throw error;
+//   }
+// };
 
 export const v3RoutingExactInput = async (
   tokenIn: string,
@@ -397,8 +397,6 @@ export const v3Swap = async (
       sqrtPriceLimitX96: '0'
     };
 
-    console.log('fuck', amount2Min.toString());
-
     if (path[0] === WIP_ADDRESS) {
       // IP -> Token (Native IP to ERC-20)
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
@@ -409,7 +407,7 @@ export const v3Swap = async (
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
         router.methods.exactInputSingle(exactInputSingleParams).encodeABI(),
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-        router.methods.unwrapWETH9(0, address).encodeABI()
+        router.methods.unwrapWETH9(amount2Min.toString(), address).encodeABI()
       ];
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment

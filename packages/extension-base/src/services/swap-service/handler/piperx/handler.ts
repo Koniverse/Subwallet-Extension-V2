@@ -15,21 +15,20 @@ import { TransactionConfig } from 'web3-core';
 
 import { calculateSwapRate, SWAP_QUOTE_TIMEOUT_MAP } from '../../utils';
 import { SwapBaseHandler, SwapBaseInterface } from '../base-handler';
-import { mainnet_v2RouterAddress, piperv3SwapRouterAddress, v2RouterAddress, WIP_ADDRESS } from './constant';
+import {
+  mainnet_v2RouterAddress,
+  piperv3SwapRouterAddress,
+  PIPERX_SWAP_ADDRESSES,
+  v2RouterAddress,
+  WIP_ADDRESS
+} from './constant';
 import { checkSwapVersion, routerTokenApproval, routingExactInput, swap, v3Swap } from './core';
 
 function calculateMinReceive (toAmount: string, slippage: number): bigint {
-  const scaleFactor = 1e18;
-  const toAmountScaled = Math.floor(Number(toAmount) * scaleFactor);
-  const toAmountBigInt = BigInt(toAmountScaled);
   const bnToAmount = new BigNumber(toAmount);
-  const minReceive2 = bnToAmount.multipliedBy(1 - slippage);
-  const slippageBigInt = BigInt(Math.floor(slippage * 10000));
-  const minReceive = (toAmountBigInt * (10000n - slippageBigInt)) / (10000n * BigInt(scaleFactor));
+  const minReceive = bnToAmount.multipliedBy(1 - slippage).toFixed(0);
 
-  console.log('Hehe', Number(minReceive), minReceive2.toString());
-
-  return minReceive;
+  return BigInt(minReceive);
 }
 
 export class PiperXSwapHandler implements SwapBaseInterface {
@@ -68,11 +67,11 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     return this.swapBaseHandler.slug;
   }
 
-  get v2RouterAddress () {
+  get chainSetting () {
     if (this.isTestnet) {
-      return v2RouterAddress;
+      return 'testnet';
     } else {
-      return mainnet_v2RouterAddress;
+      return 'mainnet';
     }
   }
 
@@ -136,8 +135,7 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     const toAmount = router.maxAmountOut.toString();
     const minReceive = calculateMinReceive(toAmount, request.slippage);
 
-    console.log('router', router);
-    const extrinsic: TransactionConfig = await v3Swap(fromAmount, minReceive, router.bestRoute, request.address, BigInt(3000000000), evmApi);
+    const extrinsic: TransactionConfig = await swap(fromAmount, minReceive, router.bestRoute, request.address, BigInt(3000000000), evmApi);
     const gasLimit = extrinsic.gas;
 
     let networkFeeAmount;
@@ -146,14 +144,11 @@ export class PiperXSwapHandler implements SwapBaseInterface {
       networkFeeAmount = new BigN(extrinsic.maxFeePerGas.toString()).multipliedBy(gasLimit).toFixed(0);
     }
 
-    console.log('Hmm', networkFeeAmount);
     const networkFee: CommonFeeComponent = {
       tokenSlug: fromChainNativeTokenSlug,
       amount: networkFeeAmount?.toString() || '0', // todo
       feeType: SwapFeeType.NETWORK_FEE
     };
-
-    console.log('networkFee', networkFee);
 
     try {
       return {
@@ -216,7 +211,7 @@ export class PiperXSwapHandler implements SwapBaseInterface {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
       const allowance = await fromTokenContract.methods.allowance(params.request.address, routerContract).call() as string;
 
-      if (!allowance || new BigNumber(allowance).gt(params.request.fromAmount)) {
+      if (allowance && new BigNumber(allowance).gt(params.request.fromAmount)) {
         return Promise.resolve(undefined);
       }
 
@@ -286,7 +281,10 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     const fromContract = _getContractAddressOfToken(fromAsset) || WIP_ADDRESS;
     const evmApi = this.chainService.getEvmApi(fromAsset.originChain);
     const versionUsed = checkSwapVersion(params.quote.metadata as string[]);
-    const routerContract = versionUsed === 'v2' ? v2RouterAddress : piperv3SwapRouterAddress;
+    const routerContract = versionUsed === 'v2' ?
+      PIPERX_SWAP_ADDRESSES[this.chainSetting].v2RouterAddress
+      : PIPERX_SWAP_ADDRESSES[this.chainSetting].piperv3SwapRouterAddress;
+
     const transactionConfig = await routerTokenApproval(fromContract, BigInt(params.quote.fromAmount), params.address, routerContract, evmApi);
     const chain = fromAsset.originChain;
 
@@ -310,7 +308,6 @@ export class PiperXSwapHandler implements SwapBaseInterface {
 
   public async handleSubmitStep (params: SwapSubmitParams): Promise<SwapSubmitStepData> {
     const fromAsset = this.chainService.getAssetBySlug(params.quote.pair.from);
-    const toAsset = this.chainService.getAssetBySlug(params.quote.pair.to);
     const evmApi = this.chainService.getEvmApi(fromAsset.originChain);
 
     const txData: SwapBaseTxData = {
@@ -325,9 +322,7 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     const toAmount = params.quote.toAmount;
     const minReceive = calculateMinReceive(toAmount, params.slippage);
 
-    console.log('minReceive', [minReceive, minReceive.toString()]);
-
-    const extrinsic: TransactionConfig = await v3Swap(fromAmount, minReceive, params.quote.metadata as string[], params.address, BigInt(3000000000), evmApi);
+    const extrinsic: TransactionConfig = await swap(fromAmount, minReceive, params.quote.metadata as string[], params.address, BigInt(3000000000), evmApi);
 
     return {
       txChain: fromAsset.originChain,
