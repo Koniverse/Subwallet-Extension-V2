@@ -52,7 +52,6 @@ type ComponentProps = {
 interface TransferOptions {
   isTransferAll: boolean;
   isTransferBounceable: boolean;
-  isPassConfirmation: boolean;
 }
 
 function getTokenItems (
@@ -191,12 +190,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
 
   const [loading, setLoading] = useState(false);
   const [isTransferAll, setIsTransferAll] = useState(false);
-  const [isSignMultiTransaction, setIsSignMultiTransaction] = useState(true);
-
-  // todo: remove after test
-  useEffect(() => {
-    setIsSignMultiTransaction(false);
-  }, []);
 
   // use this to reinit AddressInput component
   const [addressInputRenderKey, setAddressInputRenderKey] = useState<string>(defaultAddressInputRenderKey);
@@ -475,8 +468,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         to,
         value,
         transferAll: options.isTransferAll,
-        transferBounceable: options.isTransferBounceable,
-        isPassConfirmation: options.isPassConfirmation
+        transferBounceable: options.isTransferBounceable
       });
     }
 
@@ -500,8 +492,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
 
   // Submit transaction
   const doSubmit = useCallback((values: TransferParams, options: TransferOptions) => {
-    let isPassConfirmation = false;
-
     if (isShowWarningOnSubmit(values)) {
       return;
     }
@@ -531,23 +521,12 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           return await submitData(step + 1);
         } else {
           const stepType = processState.steps[step].type;
-          let submitPromise: Promise<SWTransactionResponse> | undefined;
-
-          if (stepType === CommonStepType.TOKEN_APPROVAL) {
-            submitPromise = handleBridgeSpendingApproval(values);
-          } else {
-            options.isPassConfirmation = isPassConfirmation; // todo: also can set at init of any state except first step
-            submitPromise = handleBasicSubmit(values, options);
-          }
+          const submitPromise: Promise<SWTransactionResponse> | undefined = stepType === CommonStepType.TOKEN_APPROVAL ? handleBridgeSpendingApproval(values) : handleBasicSubmit(values, options);
 
           const rs = await submitPromise;
           const success = onSuccess(isLastStep, needRollback)(rs);
 
           if (success) {
-            if (isSignMultiTransaction) {
-              isPassConfirmation = true;
-            }
-
             return await submitData(step + 1);
           } else {
             return false;
@@ -568,7 +547,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           setLoading(false);
         });
     }, 300);
-  }, [handleBasicSubmit, isSignMultiTransaction, handleBridgeSpendingApproval, isShowWarningOnSubmit, onError, onSuccess, processState]);
+  }, [handleBasicSubmit, handleBridgeSpendingApproval, isShowWarningOnSubmit, onError, onSuccess, processState]);
 
   const onSetMaxTransferable = useCallback((value: boolean) => {
     const bnMaxTransfer = new BN(maxTransfer);
@@ -581,8 +560,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const onSubmit: FormCallbacks<TransferParams>['onFinish'] = useCallback((values: TransferParams) => {
     const options: TransferOptions = {
       isTransferAll: isTransferAll,
-      isTransferBounceable: false,
-      isPassConfirmation: false
+      isTransferBounceable: false
     };
 
     let checkTransferAll = false;
