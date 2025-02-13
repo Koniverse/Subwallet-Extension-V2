@@ -130,12 +130,19 @@ export const recalculateGasPrice = (_price: string, chain: string) => {
 
 export const getEIP1559GasFee = (
   baseFee: BigN,
-  maxPriorityFee: BigN
+  maxPriorityFee: BigN,
+  blockNumber: number,
+  blockTime: number
 ): EvmEIP1559FeeOption => {
   // https://www.blocknative.com/blog/eip-1559-fees
-  const maxFee = baseFee.multipliedBy(2).plus(maxPriorityFee);
+  const maxFee = baseFee.multipliedBy(1.2).plus(maxPriorityFee);
 
-  return { maxFeePerGas: maxFee.toFixed(0), maxPriorityFeePerGas: maxPriorityFee.toFixed(0) };
+  return {
+    maxFeePerGas: maxFee.toFixed(0),
+    maxPriorityFeePerGas: maxPriorityFee.toFixed(0),
+    minWaitTimeEstimate: blockTime * (blockNumber - 2),
+    maxWaitTimeEstimate: blockTime * blockNumber
+  };
 };
 
 export const calculateGasFeeParams = async (web3: _EvmApi, networkKey: string, useOnline = true, useInfura = true): Promise<EvmFeeInfo> => {
@@ -174,6 +181,12 @@ export const calculateGasFeeParams = async (web3: _EvmApi, networkKey: string, u
 
     const history = await web3.api.eth.getFeeHistory(numBlock, 'latest', rewardPercent);
 
+    const currentBlock = history.oldestBlock - 1;
+    const [newBlock, oldBlock] = await Promise.all([
+      web3.api.eth.getBlock(currentBlock),
+      web3.api.eth.getBlock(currentBlock - numBlock)
+    ]);
+    const blockTime = Number((BigInt(newBlock.timestamp || 0) - BigInt(oldBlock.timestamp || 0)) / BigInt(numBlock) * BigInt(1000));
     const baseGasFee = new BigN(history.baseFeePerGas[history.baseFeePerGas.length - 1]); // Last element is latest
 
     const blocksBusy = history.reward.reduce((previous: number, rewards, currentIndex) => {
@@ -205,9 +218,9 @@ export const calculateGasFeeParams = async (web3: _EvmApi, networkKey: string, u
       baseGasFee: baseGasFee.toString(),
       busyNetwork,
       options: {
-        slow: getEIP1559GasFee(baseGasFee, slowPriorityFee),
-        average: getEIP1559GasFee(baseGasFee, averagePriorityFee),
-        fast: getEIP1559GasFee(baseGasFee, fastPriorityFee),
+        slow: getEIP1559GasFee(baseGasFee, slowPriorityFee, 10, blockTime),
+        average: getEIP1559GasFee(baseGasFee, averagePriorityFee, 5, blockTime),
+        fast: getEIP1559GasFee(baseGasFee, fastPriorityFee, 3, blockTime),
         default: busyNetwork ? 'average' : 'slow'
       }
     };
