@@ -5,10 +5,9 @@ import { _getAssetSymbol } from '@subwallet/extension-base/services/chain-servic
 import { SwapBaseTxData } from '@subwallet/extension-base/types';
 import { MetaInfo } from '@subwallet/extension-koni-ui/components';
 import { SwapTransactionBlock } from '@subwallet/extension-koni-ui/components/Swap';
-import { BN_TEN, BN_ZERO } from '@subwallet/extension-koni-ui/constants';
 import { useGetAccountByAddress, useGetChainPrefixBySlug, useSelector } from '@subwallet/extension-koni-ui/hooks';
+import { getCurrentCurrencyTotalFee } from '@subwallet/extension-koni-ui/utils';
 import { Number } from '@subwallet/react-ui';
-import BigN from 'bignumber.js';
 import React, { FC, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
@@ -36,20 +35,7 @@ const Component: FC<Props> = (props: Props) => {
   }, [assetRegistryMap, data.quote.pair.from]);
 
   const estimatedFeeValue = useMemo(() => {
-    let totalBalance = BN_ZERO;
-
-    data.quote.feeInfo.feeComponent.forEach((feeItem) => {
-      const asset = assetRegistryMap[feeItem.tokenSlug];
-
-      if (asset) {
-        const { decimals, priceId } = asset;
-        const price = priceMap[priceId || ''] || 0;
-
-        totalBalance = totalBalance.plus(new BigN(feeItem.amount).div(BN_TEN.pow(decimals || 0)).multipliedBy(price));
-      }
-    });
-
-    return totalBalance;
+    return getCurrentCurrencyTotalFee(data.quote.feeInfo.feeComponent, assetRegistryMap, priceMap);
   }, [assetRegistryMap, data.quote.feeInfo.feeComponent, priceMap]);
 
   const renderRateConfirmInfo = () => {

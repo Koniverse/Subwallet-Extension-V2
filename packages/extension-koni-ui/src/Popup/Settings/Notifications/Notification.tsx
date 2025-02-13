@@ -642,7 +642,7 @@ const Wrapper = (props: Props) => {
     <PageWrapper
       className={CN(props.className)}
       hideLoading={true}
-      resolve={dataContext.awaitStores(['earning'])}
+      resolve={dataContext.awaitStores(['earning', 'price'])}
     >
       <Component {...props} />
     </PageWrapper>

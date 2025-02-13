@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { _getAssetDecimals, _getAssetSymbol } from '@subwallet/extension-base/services/chain-service/utils';
-import { SubmitYieldStepData, SummaryEarningProcessData } from '@subwallet/extension-base/types';
+import { CommonFeeComponent, SubmitYieldStepData, SummaryEarningProcessData } from '@subwallet/extension-base/types';
 import { CommonTransactionInfo, MetaInfo } from '@subwallet/extension-koni-ui/components';
 import { useSelector } from '@subwallet/extension-koni-ui/hooks';
+import { getCurrentCurrencyTotalFee } from '@subwallet/extension-koni-ui/utils';
 import CN from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,42 +22,45 @@ const Component: React.FC<Props> = (props: Props) => {
   const combineInfo = useMemo(() => (progressData.combineInfo as SummaryEarningProcessData), [progressData.combineInfo]);
   const txParams = useMemo(() => (combineInfo.data as unknown as SubmitYieldStepData), [combineInfo.data]);
 
-  const { assetRegistry: tokenInfoMap } = useSelector((state) => state.assetRegistry);
+  const assetRegistryMap = useSelector((state) => state.assetRegistry.assetRegistry);
+  const { currencyData, priceMap } = useSelector((state) => state.price);
 
   const { inputTokenDecimals, inputTokenSymbol } = useMemo(() => {
-    const inputTokenInfo = tokenInfoMap[txParams.inputTokenSlug];
+    const inputTokenInfo = assetRegistryMap[txParams.inputTokenSlug];
 
     return {
       inputTokenSymbol: _getAssetSymbol(inputTokenInfo),
       inputTokenDecimals: _getAssetDecimals(inputTokenInfo)
     };
-  }, [tokenInfoMap, txParams.inputTokenSlug]);
+  }, [assetRegistryMap, txParams.inputTokenSlug]);
 
   const derivativeTokenBasicInfo = useMemo(() => {
     if (!txParams.derivativeTokenSlug) {
       return;
     }
 
-    const derivativeTokenInfo = tokenInfoMap[txParams.derivativeTokenSlug];
+    const derivativeTokenInfo = assetRegistryMap[txParams.derivativeTokenSlug];
 
     return {
       symbol: _getAssetSymbol(derivativeTokenInfo),
       decimals: _getAssetDecimals(derivativeTokenInfo)
     };
-  }, [txParams.derivativeTokenSlug, tokenInfoMap]);
-
-  const { feeTokenDecimals, feeTokenSymbol } = useMemo(() => {
-    const feeTokenInfo = tokenInfoMap[txParams.feeTokenSlug];
-
-    return {
-      feeTokenSymbol: _getAssetSymbol(feeTokenInfo),
-      feeTokenDecimals: _getAssetDecimals(feeTokenInfo)
-    };
-  }, [txParams.feeTokenSlug, tokenInfoMap]);
+  }, [txParams.derivativeTokenSlug, assetRegistryMap]);
 
   const estimatedReceivables = useMemo(() => {
     return Math.floor(parseInt(txParams.amount) / txParams.exchangeRate);
   }, [txParams.amount, txParams.exchangeRate]);
+
+  const estimatedFeeValue = useMemo(() => {
+    const feeComponents: CommonFeeComponent[] = progressData.steps.reduce((previousValue, currentStep) => {
+      return [
+        ...previousValue,
+        ...currentStep.fee.feeComponent
+      ];
+    }, [] as CommonFeeComponent[]);
+
+    return getCurrentCurrencyTotalFee(feeComponents, assetRegistryMap, priceMap);
+  }, [assetRegistryMap, priceMap, progressData.steps]);
 
   return (
     <div className={CN(className)}>
@@ -88,10 +92,11 @@ const Component: React.FC<Props> = (props: Props) => {
         )}
 
         <MetaInfo.Number
-          decimals={feeTokenDecimals}
-          label={t('Estimated fee')}
-          suffix={feeTokenSymbol}
-          value={0}
+          decimals={0}
+          label={'Estimated fee'}
+          prefix={(currencyData.isPrefix && currencyData.symbol) || ''}
+          suffix={(!currencyData.isPrefix && currencyData.symbol) || ''}
+          value={estimatedFeeValue}
         />
       </MetaInfo>
     </div>

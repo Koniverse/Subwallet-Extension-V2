@@ -1,10 +1,12 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { SubmitJoinNominationPool, SummaryEarningProcessData } from '@subwallet/extension-base/types';
+import { CommonFeeComponent, SubmitJoinNominationPool, SummaryEarningProcessData } from '@subwallet/extension-base/types';
 import CommonTransactionInfo from '@subwallet/extension-koni-ui/components/Confirmation/CommonTransactionInfo';
 import MetaInfo from '@subwallet/extension-koni-ui/components/MetaInfo/MetaInfo';
+import { useSelector } from '@subwallet/extension-koni-ui/hooks';
 import useGetNativeTokenBasicInfo from '@subwallet/extension-koni-ui/hooks/common/useGetNativeTokenBasicInfo';
+import { getCurrentCurrencyTotalFee } from '@subwallet/extension-koni-ui/utils';
 import CN from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,8 +21,22 @@ const Component: React.FC<Props> = (props: Props) => {
   const combineInfo = useMemo(() => (progressData.combineInfo as SummaryEarningProcessData), [progressData.combineInfo]);
   const data = useMemo(() => (combineInfo.data as unknown as SubmitJoinNominationPool), [combineInfo.data]);
 
+  const assetRegistryMap = useSelector((state) => state.assetRegistry.assetRegistry);
+  const { currencyData, priceMap } = useSelector((state) => state.price);
+
   const { t } = useTranslation();
   const { decimals, symbol } = useGetNativeTokenBasicInfo(combineInfo.brief.chain);
+
+  const estimatedFeeValue = useMemo(() => {
+    const feeComponents: CommonFeeComponent[] = progressData.steps.reduce((previousValue, currentStep) => {
+      return [
+        ...previousValue,
+        ...currentStep.fee.feeComponent
+      ];
+    }, [] as CommonFeeComponent[]);
+
+    return getCurrentCurrencyTotalFee(feeComponents, assetRegistryMap, priceMap);
+  }, [assetRegistryMap, priceMap, progressData.steps]);
 
   return (
     <div className={CN(className)}>
@@ -56,10 +72,11 @@ const Component: React.FC<Props> = (props: Props) => {
         />
 
         <MetaInfo.Number
-          decimals={decimals}
-          label={t('Estimated fee')}
-          suffix={symbol}
-          value={0}
+          decimals={0}
+          label={'Estimated fee'}
+          prefix={(currencyData.isPrefix && currencyData.symbol) || ''}
+          suffix={(!currencyData.isPrefix && currencyData.symbol) || ''}
+          value={estimatedFeeValue}
         />
       </MetaInfo>
     </div>
