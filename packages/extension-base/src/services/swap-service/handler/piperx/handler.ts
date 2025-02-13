@@ -69,8 +69,6 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     }
   }
 
-  // todo
-
   public validateSwapRequest (request: SwapRequest): Promise<SwapEarlyValidation> {
     try {
       const fromAsset = this.chainService.getAssetBySlug(request.pair.from);
@@ -320,8 +318,6 @@ export class PiperXSwapHandler implements SwapBaseInterface {
     const fromAmount = BigInt(params.quote.fromAmount);
     const toAmount = params.quote.toAmount;
     const minReceive = calculateMinReceive(toAmount, params.slippage);
-
-    console.log('extrinsic', await swap(fromAmount, minReceive, params.quote.metadata as string[], params.address, BigInt(3000000000), evmApi, this.chainSetting));
 
     const extrinsic: TransactionConfig = await swap(fromAmount, minReceive, params.quote.metadata as string[], params.address, BigInt(3000000000), evmApi, this.chainSetting);
 

@@ -245,8 +245,6 @@ export const v2Swap = async (
       maxPriorityFeePerGas: priority.maxPriorityFeePerGas?.toString()
     };
 
-    console.log('txConfig', txConfig);
-
     return txConfig;
   } catch (error) {
     console.error('Error in swap:', error);
