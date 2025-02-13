@@ -7,10 +7,11 @@ import { ChainType, ExtrinsicType } from '@subwallet/extension-base/background/K
 import { _getPiperXEarlyValidationError } from '@subwallet/extension-base/core/logic-validation';
 import { getERC20Contract } from '@subwallet/extension-base/koni/api/contract-handler/evm/web3';
 import { BalanceService } from '@subwallet/extension-base/services/balance-service';
+import { getTransferMockTxFee } from '@subwallet/extension-base/services/balance-service/transfer/token';
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
 import { _getChainNativeTokenSlug, _getContractAddressOfToken, _isNativeToken } from '@subwallet/extension-base/services/chain-service/utils';
 import { BaseStepDetail, BasicTxErrorType, CommonFeeComponent, CommonOptimalPath, CommonStepFeeInfo, CommonStepType, HandleYieldStepData, OptimalSwapPathParams, PiperXValidationMetadata, SwapBaseTxData, SwapEarlyValidation, SwapErrorType, SwapFeeType, SwapProviderId, SwapQuote, SwapRequest, SwapStepType, SwapSubmitParams, SwapSubmitStepData, TokenSpendingApprovalParams, ValidateSwapProcessParams } from '@subwallet/extension-base/types';
-import BigN, { BigNumber } from 'bignumber.js';
+import { BigNumber } from 'bignumber.js';
 import { TransactionConfig } from 'web3-core';
 
 import { calculateSwapRate, SWAP_QUOTE_TIMEOUT_MAP } from '../../utils';
@@ -125,20 +126,22 @@ export class PiperXSwapHandler implements SwapBaseInterface {
 
     const defaultFeeToken = _isNativeToken(fromAsset) ? fromAsset.slug : fromChainNativeTokenSlug;
     const toAmount = router.maxAmountOut.toString();
-    const minReceive = calculateMinReceive(toAmount, request.slippage);
+    // const minReceive = calculateMinReceive(toAmount, request.slippage);
 
-    const extrinsic: TransactionConfig = await swap(fromAmount, minReceive, router.bestRoute, request.address, BigInt(3000000000), evmApi, this.chainSetting);
-    const gasLimit = extrinsic.gas;
+    // const extrinsic: TransactionConfig = await swap(fromAmount, minReceive, router.bestRoute, request.address, BigInt(3000000000), evmApi, this.chainSetting);
+    // const gasLimit = extrinsic.gas;
+    //
+    // let networkFeeAmount;
+    //
+    // if (extrinsic.maxFeePerGas && gasLimit) {
+    //   networkFeeAmount = new BigN(extrinsic.maxFeePerGas.toString()).multipliedBy(gasLimit).toFixed(0);
+    // }
 
-    let networkFeeAmount;
-
-    if (extrinsic.maxFeePerGas && gasLimit) {
-      networkFeeAmount = new BigN(extrinsic.maxFeePerGas.toString()).multipliedBy(gasLimit).toFixed(0);
-    }
+    const feeAmount = await getTransferMockTxFee(request.address, fromChain, fromAsset, evmApi);
 
     const networkFee: CommonFeeComponent = {
       tokenSlug: fromChainNativeTokenSlug,
-      amount: networkFeeAmount?.toString() || '0', // todo
+      amount: feeAmount?.toString() || '0',
       feeType: SwapFeeType.NETWORK_FEE
     };
 
@@ -208,7 +211,7 @@ export class PiperXSwapHandler implements SwapBaseInterface {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
       const allowance = await fromTokenContract.methods.allowance(params.request.address, routerContract).call() as string;
 
-      if (allowance && new BigNumber(allowance).gt(params.request.fromAmount)) {
+      if (allowance && new BigNumber(allowance).gte(params.request.fromAmount)) {
         return Promise.resolve(undefined);
       }
 
@@ -282,7 +285,7 @@ export class PiperXSwapHandler implements SwapBaseInterface {
       ? PIPERX_SWAP_ADDRESSES[this.chainSetting].v2RouterAddress
       : PIPERX_SWAP_ADDRESSES[this.chainSetting].piperv3SwapRouterAddress;
 
-    const transactionConfig = await routerTokenApproval(fromContract, BigInt(params.quote.fromAmount), params.address, routerContract, evmApi);
+    const transactionConfig = await routerTokenApproval(fromContract, BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935'), params.address, routerContract, evmApi);
     const chain = fromAsset.originChain;
 
     const _data: TokenSpendingApprovalParams = {
