@@ -26,7 +26,7 @@ const Component: React.FC<Props> = (props: Props) => {
     setTimeout(() => {
       inactiveModal(CHOOSE_FEE_TOKEN_MODAL);
     }, 100);
-  }, [onSelect, slug]);
+  }, [onSelect, slug, inactiveModal]);
 
   const feeAssetInfo = useMemo(() => {
     return (slug ? assetRegistryMap[slug] : undefined);
