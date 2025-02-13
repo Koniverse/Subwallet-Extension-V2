@@ -53,6 +53,7 @@ type ComponentProps = {
 interface TransferOptions {
   isTransferAll: boolean;
   isTransferBounceable: boolean;
+  isTransferLocalTokenAndPayThatTokenAsFee: boolean
 }
 
 function getTokenItems (
@@ -203,6 +204,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
   const chainStatus = useMemo(() => chainStatusMap[chainValue]?.connectionStatus, [chainValue, chainStatusMap]);
   const estimatedNativeFee = useMemo((): string => transferInfo?.feeOptions.estimatedFee || '0', [transferInfo]);
+  const [isTransferLocalTokenAndPayThatTokenAsFee, setIsTransferLocalTokenAndPayThatTokenAsFee] = useState(false);
 
   // todo: remove after testing
   console.log('[TESTER] Transfer info:', transferInfo);
@@ -379,6 +381,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
 
         setCurrentTokenPayFee(undefined);
         setTokenPayFeeAmount(undefined);
+        setIsTransferLocalTokenAndPayThatTokenAsFee(false);
       }
 
       if (part.destChain || part.chain || part.value || part.asset) {
@@ -469,6 +472,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         value: value,
         transferAll: options.isTransferAll,
         transferBounceable: options.isTransferBounceable,
+        isTransferLocalTokenAndPayThatTokenAsFee: options.isTransferLocalTokenAndPayThatTokenAsFee,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
         tokenPayFeeSlug: currentTokenPayFee
@@ -484,6 +488,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         value,
         transferAll: options.isTransferAll,
         transferBounceable: options.isTransferBounceable,
+        isTransferLocalTokenAndPayThatTokenAsFee: options.isTransferLocalTokenAndPayThatTokenAsFee,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
         tokenPayFeeSlug: currentTokenPayFee
@@ -588,7 +593,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const onSubmit: FormCallbacks<TransferParams>['onFinish'] = useCallback((values: TransferParams) => {
     const options: TransferOptions = {
       isTransferAll: isTransferAll,
-      isTransferBounceable: false
+      isTransferBounceable: false,
+      isTransferLocalTokenAndPayThatTokenAsFee
     };
 
     let checkTransferAll = false;
@@ -706,7 +712,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     _doSubmit().catch((error) => {
       console.error('Error during submit:', error);
     });
-  }, [assetInfo, chainInfoMap, closeAlert, doSubmit, form, isTransferAll, openAlert, t, updateAddressInputValue]);
+  }, [assetInfo, chainInfoMap, closeAlert, doSubmit, form, isTransferAll, isTransferLocalTokenAndPayThatTokenAsFee, openAlert, t, updateAddressInputValue]);
 
   const onClickSubmit = useCallback((values: TransferParams) => {
     if (currentConfirmation) {
@@ -800,7 +806,25 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
 
     const callback = (transferInfo: ResponseSubscribeTransfer) => {
       if (!cancel) {
-        setTransferInfo(transferInfo);
+        if (isTransferLocalTokenAndPayThatTokenAsFee) {
+          const estimateFeeNative = (BigInt(transferInfo.feeOptions.estimatedFee) * BigInt(105) / BigInt(100)).toString();
+
+          getAmountForPair({
+            nativeTokenSlug,
+            toTokenSlug: assetValue,
+            nativeTokenFeeAmount: estimateFeeNative
+          }).then((toAmount) => {
+            transferInfo.feeOptions.estimatedFee = estimateFeeNative;
+            transferInfo.maxTransferable = (BigInt(transferInfo.maxTransferable) - BigInt(toAmount)).toString();
+
+            setTransferInfo(transferInfo);
+          }).catch((e) => {
+            console.error('Error in getAmountForPair:', e);
+          });
+        } else {
+          setTransferInfo(transferInfo);
+        }
+
         id = transferInfo.id;
 
         validate();
@@ -834,7 +858,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       cancel = true;
       id && cancelSubscription(id).catch(console.error);
     };
-  }, [assetValue, assetRegistry, chainValue, chainStatus, form, fromValue, destChainValue, selectedTransactionFee]);
+  }, [assetValue, assetRegistry, chainValue, chainStatus, form, fromValue, destChainValue, selectedTransactionFee, isTransferLocalTokenAndPayThatTokenAsFee, nativeTokenSlug]);
 
   useEffect(() => {
     const bnTransferAmount = new BN(transferAmountValue || '0');
@@ -928,6 +952,15 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       });
     }
   }, [chainInfoMap, chainValue, currentTokenPayFee, estimatedNativeFee, nativeTokenSlug]);
+
+  useEffect(() => {
+    const isNonNativeToken = assetValue && !assetValue.includes(_AssetType.NATIVE) && currentTokenPayFee && !currentTokenPayFee.includes(_AssetType.NATIVE);
+    const isSameToken = assetValue === currentTokenPayFee;
+
+    if (isNonNativeToken && isSameToken) {
+      setIsTransferLocalTokenAndPayThatTokenAsFee(true);
+    }
+  }, [assetValue, currentTokenPayFee]);
 
   useRestoreTransaction(form);
 

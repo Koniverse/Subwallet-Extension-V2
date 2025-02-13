@@ -1310,7 +1310,7 @@ export default class KoniExtension {
   }
 
   private async makeTransfer (inputData: RequestSubmitTransfer): Promise<SWTransactionResponse> {
-    const { chain, feeCustom, feeOption, from, to, tokenPayFeeSlug, tokenSlug, transferAll, transferBounceable, value } = inputData;
+    const { chain, feeCustom, feeOption, from, isTransferLocalTokenAndPayThatTokenAsFee, to, tokenPayFeeSlug, tokenSlug, transferAll, transferBounceable, value } = inputData;
     const transferTokenInfo = this.#koniState.chainService.getAssetBySlug(tokenSlug);
     const [errors, ,] = validateTransferRequest(transferTokenInfo, from, to, value, transferAll);
 
@@ -1469,13 +1469,14 @@ export default class KoniExtension {
       extrinsicType,
       ignoreWarnings,
       isTransferAll: isTransferNativeToken ? transferAll : false,
+      isTransferLocalTokenAndPayThatTokenAsFee,
       edAsWarning: isTransferNativeToken,
       additionalValidator: additionalValidator
     });
   }
 
   private async makeCrossChainTransfer (inputData: RequestCrossChainTransfer): Promise<SWTransactionResponse> {
-    const { destinationNetworkKey, feeCustom, feeOption, from, originNetworkKey, to, tokenPayFeeSlug, tokenSlug, transferAll, transferBounceable, value } = inputData;
+    const { destinationNetworkKey, feeCustom, feeOption, from, originNetworkKey, to, tokenPayFeeSlug, tokenSlug, transferAll, transferBounceable, value, isTransferLocalTokenAndPayThatTokenAsFee } = inputData;
 
     const originTokenInfo = this.#koniState.getAssetBySlug(tokenSlug);
     const destinationTokenInfo = this.#koniState.getXcmEqualAssetByChain(destinationNetworkKey, tokenSlug);
@@ -1596,6 +1597,7 @@ export default class KoniExtension {
       ignoreWarnings,
       tokenPayFeeSlug,
       isTransferAll: transferAll,
+      isTransferLocalTokenAndPayThatTokenAsFee,
       errors,
       additionalValidator: additionalValidator,
       eventsHandler: eventsHandler
