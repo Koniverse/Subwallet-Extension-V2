@@ -1,6 +1,7 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { StepStatus } from '@subwallet/extension-base/types';
 import { AlertBox, BackgroundExpandView } from '@subwallet/extension-koni-ui/components';
 import { useIsPopup } from '@subwallet/extension-koni-ui/hooks';
 import { RootState } from '@subwallet/extension-koni-ui/stores';
@@ -19,7 +20,9 @@ const Component: React.FC<Props> = (props: Props) => {
   const isPopup = useIsPopup();
 
   const processIds = useMemo(() => {
-    return Object.keys(aliveProcessMap);
+    const aliveProcesses = Object.values(aliveProcessMap).filter((p) => ![StepStatus.QUEUED, StepStatus.PREPARE].includes(p.status));
+
+    return aliveProcesses.map((p) => p.id);
   }, [aliveProcessMap]);
 
   return (
