@@ -462,7 +462,7 @@ export default class TaoNativeStakingPoolHandler extends BaseParaStakingPoolHand
     const selectedValidatorInfo = targetValidators[0];
     const hotkey = selectedValidatorInfo.address;
 
-    const extrinsic = chainApi.api.tx.subtensorModule.addStake(hotkey, binaryAmount);
+    const extrinsic = chainApi.api.tx.subtensorModule.addStake(hotkey, 0, binaryAmount);
 
     return [extrinsic, { slug: this.nativeToken.slug, amount: '0' }];
   }
@@ -480,7 +480,7 @@ export default class TaoNativeStakingPoolHandler extends BaseParaStakingPoolHand
       return Promise.reject(new TransactionError(BasicTxErrorType.INVALID_PARAMS));
     }
 
-    const extrinsic = apiPromise.api.tx.subtensorModule.removeStake(selectedTarget, binaryAmount);
+    const extrinsic = apiPromise.api.tx.subtensorModule.removeStake(selectedTarget, 0, binaryAmount);
 
     return [ExtrinsicType.STAKING_UNBOND, extrinsic];
   }
