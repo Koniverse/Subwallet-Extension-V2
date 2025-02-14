@@ -103,6 +103,7 @@ export interface RequestState extends ConfirmationsQueue, ConfirmationsQueueTon,
   signingRequest: Record<string, SigningRequest>;
   hasConfirmations: boolean;
   hasInternalConfirmations: boolean;
+  hasAliveProcess: boolean;
   numberOfConfirmations: number;
   transactionRequest: Record<string, SWTransactionResult>;
   connectWCRequest: Record<string, WalletConnectSessionRequest>;

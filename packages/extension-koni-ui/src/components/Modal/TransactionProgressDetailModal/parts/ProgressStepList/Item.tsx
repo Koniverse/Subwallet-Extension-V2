@@ -3,15 +3,7 @@
 
 import { _ChainAsset } from '@subwallet/chain-list/types';
 import { _getAssetDecimals, _getAssetSymbol, _getChainName } from '@subwallet/extension-base/services/chain-service/utils';
-import {
-  BaseStepType,
-  BriefSwapStep,
-  CommonStepType,
-  ProcessStep,
-  SummaryEarningProcessData,
-  SwapStepType, YieldPoolType,
-  YieldStepType
-} from '@subwallet/extension-base/types';
+import { BaseStepType, BriefSwapStep, CommonStepType, ProcessStep, SummaryEarningProcessData, SwapStepType, YieldPoolType, YieldStepType } from '@subwallet/extension-base/types';
 import { ProgressStepItem } from '@subwallet/extension-koni-ui/components';
 import { useSelector } from '@subwallet/extension-koni-ui/hooks';
 import { RootState } from '@subwallet/extension-koni-ui/stores';
@@ -29,7 +21,7 @@ type Props = ThemeProps & {
 };
 
 const Component: FC<Props> = (props: Props) => {
-  const { className, index, isLastItem, processStep, combineInfo } = props;
+  const { className, combineInfo, index, isLastItem, processStep } = props;
   const { t } = useTranslation();
   const chainInfoMap = useSelector((root) => root.chainStore.chainInfoMap);
   const assetRegistry = useSelector((root: RootState) => root.assetRegistry.assetRegistry);
@@ -192,7 +184,7 @@ const Component: FC<Props> = (props: Props) => {
     }
 
     return '';
-  }, [assetRegistry, chainInfoMap, processStep.metadata, processStep.type, t]);
+  }, [assetRegistry, chainInfoMap, combineInfo, processStep.metadata, processStep.type, t]);
 
   return (
     <ProgressStepItem

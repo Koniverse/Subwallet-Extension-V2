@@ -30,6 +30,8 @@ const initialState: RequestState = {
   tonSendTransactionRequest: {},
   tonWatchTransactionRequest: {},
 
+  hasAliveProcess: false,
+
   // Summary Info
   reduxStatus: ReduxStatus.INIT,
   hasConfirmations: false,
@@ -97,6 +99,9 @@ const requestStateSlice = createSlice({
   initialState,
   name: 'requestState',
   reducers: {
+    updateHasAliveProcess (state, { payload }: PayloadAction<boolean>) {
+      state.hasAliveProcess = payload;
+    },
     updateAuthorizeRequests (state, { payload }: PayloadAction<Record<string, AuthorizeRequest>>) {
       state.authorizeRequest = payload;
       readyMap.updateAuthorizeRequests = true;
