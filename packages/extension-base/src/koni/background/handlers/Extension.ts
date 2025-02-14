@@ -1655,6 +1655,10 @@ export default class KoniExtension {
   private async getAmountForPair (request: RequestGetAmountForPair) {
     const { nativeTokenFeeAmount, nativeTokenSlug, toTokenSlug } = request;
 
+    if (nativeTokenSlug === toTokenSlug) {
+      return nativeTokenFeeAmount;
+    }
+
     const nativeTokenInfo = this.#koniState.chainService.getAssetBySlug(nativeTokenSlug);
     const toTokenInfo = this.#koniState.chainService.getAssetBySlug(toTokenSlug);
     const substrateApi = this.#koniState.chainService.getSubstrateApi(nativeTokenInfo.originChain);
