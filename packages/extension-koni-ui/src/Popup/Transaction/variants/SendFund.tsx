@@ -186,12 +186,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       return true;
     }
 
-    if (chainValue !== destChainValue && currentNonNativeTokenPayFee) {
-      return true;
-    }
-
     return !!chainInfo && !!assetInfo && _isChainEvmCompatible(chainInfo) && destChainValue === chainValue && _isNativeToken(assetInfo);
-  }, [chainInfoMap, chainValue, destChainValue, currentNonNativeTokenPayFee, assetInfo]);
+  }, [chainInfoMap, chainValue, destChainValue, assetInfo]);
 
   const disabledToAddressInput = useMemo(() => {
     return _isPosChainL2Bridge(chainValue, destChainValue);
@@ -1066,6 +1062,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         {!TON_CHAINS.includes(chainValue) && nativeTokenSlug && (<FeeEditor
           chainValue={chainValue}
           currentTokenPayFee={currentNonNativeTokenPayFee}
+          destChainValue={destChainValue}
           estimateFee={(currentNonNativeTokenPayFee !== nativeTokenSlug && !!nonNativeTokenPayFeeAmount) ? nonNativeTokenPayFeeAmount : estimatedNativeFee}
           feeOptionsInfo={transferInfo?.feeOptions}
           feeType={transferInfo?.feeType}
