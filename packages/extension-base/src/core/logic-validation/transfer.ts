@@ -26,18 +26,12 @@ import { t } from 'i18next';
 import { isEthereumAddress } from '@polkadot/util-crypto';
 
 // normal transfer
-export function validateTransferRequest (tokenInfo: _ChainAsset, from: _Address, to: _Address, value: string | undefined, transferAll: boolean | undefined): [TransactionError[], KeyringPair | undefined, BigN | undefined] {
+export function validateTransferRequest (tokenInfo: _ChainAsset, from: _Address, to: _Address, value: string | undefined, transferAll: boolean | undefined): TransactionError[] {
   const errors: TransactionError[] = [];
-  const keypair = keyring.getPair(from);
-  let transferValue;
 
   if (!transferAll) {
     if (value === undefined) {
       errors.push(new TransactionError(BasicTxErrorType.INVALID_PARAMS, t('Transfer amount is required')));
-    }
-
-    if (value) {
-      transferValue = new BigN(value);
     }
   }
 
@@ -53,7 +47,7 @@ export function validateTransferRequest (tokenInfo: _ChainAsset, from: _Address,
     errors.push(new TransactionError(BasicTxErrorType.INVALID_PARAMS, t('Not found TEP74 address for this token')));
   }
 
-  return [errors, keypair, transferValue]; // todo: recheck keypair & transferValue
+  return errors;
 }
 
 export function additionalValidateTransferForRecipient (
@@ -125,16 +119,15 @@ export function additionalValidateTransferForRecipient (
 }
 
 // xcm transfer
-export function validateXcmTransferRequest (destTokenInfo: _ChainAsset | undefined, sender: _Address, sendingValue: string): [TransactionError[], KeyringPair | undefined, BigN | undefined] {
+export function validateXcmTransferRequest (destTokenInfo: _ChainAsset | undefined, sender: _Address, sendingValue: string): [TransactionError[], KeyringPair | undefined] {
   const errors = [] as TransactionError[];
   const keypair = keyring.getPair(sender);
-  const transferValue = new BigN(sendingValue);
 
   if (!destTokenInfo) {
     errors.push(new TransactionError(TransferTxErrorType.INVALID_TOKEN, t('Not found token from registry')));
   }
 
-  return [errors, keypair, transferValue];
+  return [errors, keypair];
 }
 
 export function additionalValidateXcmTransfer (originTokenInfo: _ChainAsset, destinationTokenInfo: _ChainAsset, sendingAmount: string, senderTransferable: string, receiverNativeBalance: string, destChainInfo: _ChainInfo, isSnowBridge = false): [TransactionWarning | undefined, TransactionError | undefined] {
