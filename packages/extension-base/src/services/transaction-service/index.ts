@@ -9,7 +9,6 @@ import { checkBalanceWithTransactionFee, checkSigningAccountForTransaction, chec
 import KoniState from '@subwallet/extension-base/koni/background/handlers/State';
 import { cellToBase64Str, externalMessage, getTransferCellPromise } from '@subwallet/extension-base/services/balance-service/helpers/subscribe/ton/utils';
 import { TonTransactionConfig } from '@subwallet/extension-base/services/balance-service/transfer/ton-transfer';
-import { _isPolygonChainBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/polygonBridge';
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
 import { _getAssetDecimals, _getAssetSymbol, _getChainNativeTokenBasicInfo, _getEvmChainId, _isChainEvmCompatible } from '@subwallet/extension-base/services/chain-service/utils';
 import { EventService } from '@subwallet/extension-base/services/event-service';
@@ -34,6 +33,7 @@ import { ethers, TransactionLike } from 'ethers';
 import EventEmitter from 'eventemitter3';
 import { t } from 'i18next';
 import { BehaviorSubject, interval as rxjsInterval, Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { TransactionConfig, TransactionReceipt } from 'web3-core';
 
 import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
@@ -47,13 +47,17 @@ import NotificationService from '../notification-service/NotificationService';
 
 export default class TransactionService {
   private readonly state: KoniState;
-  private readonly transactionSubject: BehaviorSubject<Record<string, SWTransaction>> = new BehaviorSubject<Record<string, SWTransaction>>({});
   private readonly eventService: EventService;
   private readonly historyService: HistoryService;
   private readonly notificationService: NotificationService;
   private readonly chainService: ChainService;
 
   private readonly watchTransactionSubscribes: Record<string, Promise<void>> = {};
+
+  private aliveProcessMap: Map<string, ProcessTransactionData> = new Map();
+
+  private readonly transactionSubject: BehaviorSubject<Record<string, SWTransaction>> = new BehaviorSubject<Record<string, SWTransaction>>({});
+  private readonly aliveProcessSubject: BehaviorSubject<Map<string, ProcessTransactionData>> = new BehaviorSubject<Map<string, ProcessTransactionData>>(this.aliveProcessMap);
 
   private get transactions (): Record<string, SWTransaction> {
     return this.transactionSubject.getValue();
@@ -167,6 +171,57 @@ export default class TransactionService {
     return this.transactionSubject;
   }
 
+  public get observables () {
+    const transactionSubject = this.transactionSubject;
+    const aliveProcessSubject = this.aliveProcessSubject;
+
+    return {
+      get transaction () {
+        return transactionSubject.asObservable();
+      },
+      get aliveProcess () {
+        return aliveProcessSubject.asObservable().pipe(
+          map((aliveProcessMap): Record<string, ProcessTransactionData> => {
+            const aliveProcessRecord: Record<string, ProcessTransactionData> = {};
+
+            aliveProcessMap.forEach((value, key) => {
+              aliveProcessRecord[key] = value;
+            });
+
+            return aliveProcessRecord;
+          })
+        );
+      }
+    };
+  }
+
+  public get values () {
+    const transactionSubject = this.transactionSubject;
+    const aliveProcessSubject = this.aliveProcessSubject;
+
+    return {
+      get transaction () {
+        return transactionSubject.value;
+      },
+      get aliveProcess (): Record<string, ProcessTransactionData> {
+        const aliveProcessMap = aliveProcessSubject.value;
+
+        const aliveProcessRecord: Record<string, ProcessTransactionData> = {};
+
+        aliveProcessMap.forEach((value, key) => {
+          aliveProcessRecord[key] = value;
+        });
+
+        return aliveProcessRecord;
+      }
+    };
+  }
+
+  private updateAliveProcess () {
+    console.log('updateAliveProcess');
+    this.aliveProcessSubject.next(this.aliveProcessMap);
+  }
+
   private fillTransactionDefaultInfo (transaction: SWTransactionInput): SWTransaction {
     const isInternal = !transaction.url;
     const transactionId = getTransactionId(transaction.chainType, transaction.chain, isInternal, isWalletConnectRequest(transaction.id));
@@ -273,7 +328,7 @@ export default class TransactionService {
       this.onSigned(data);
 
       if (step) {
-        this.updateProcessStepStatus(step, { transactionId: transaction.id, status: StepStatus.PROCESSING });
+        this.updateProcessStepStatus(step, { transactionId: transaction.id, status: StepStatus.PROCESSING, chain: transaction.chain });
       }
     });
 
@@ -1354,23 +1409,22 @@ export default class TransactionService {
       .catch(console.error);
   }
 
-  private cacheProcessMap: Map<string, ProcessTransactionData> = new Map();
-
   public async createProcessIfNeed (process: ProcessTransactionData) {
-    if (!this.cacheProcessMap.has(process.id)) {
-      this.cacheProcessMap.set(process.id, process);
+    if (!this.aliveProcessMap.has(process.id)) {
+      this.aliveProcessMap.set(process.id, process);
 
+      this.updateAliveProcess();
       await this.state.dbService.upsertProcessTransaction(process);
     }
   }
 
   public checkProcessExist (processId: string) {
-    return this.cacheProcessMap.has(processId);
+    return this.aliveProcessMap.has(processId);
   }
 
-  private updateProcessStepStatus (step: BriefProcessStep, data: Pick<ProcessStep, 'status' | 'transactionId' | 'extrinsicHash'>) {
+  private updateProcessStepStatus (step: BriefProcessStep, data: Pick<ProcessStep, 'status' | 'transactionId' | 'extrinsicHash' | 'chain'>) {
     const { processId, stepId } = step;
-    const process = this.cacheProcessMap.get(processId);
+    const process = this.aliveProcessMap.get(processId);
 
     if (process) {
       const step = process.steps.find((item) => item.id === stepId);
@@ -1378,11 +1432,16 @@ export default class TransactionService {
       if (step) {
         Object.assign(step, data);
 
+        if ([StepStatus.PREPARE || StepStatus.PROCESSING].includes(step.status)) {
+          process.currentStepId = step.id;
+        }
+
         if (step.status === StepStatus.COMPLETE) {
           const nextStep = process.steps.find((item) => item.id === stepId + 1);
 
           if (nextStep) {
             nextStep.status = StepStatus.PREPARE;
+            process.currentStepId = nextStep.id;
           }
         }
       }
@@ -1392,24 +1451,30 @@ export default class TransactionService {
       }
 
       if (process.steps.every((item) => item.status === StepStatus.COMPLETE)) {
+        const lastStep = process.steps[process.steps.length - 1];
+
+        process.lastTransactionChain = lastStep.chain;
+        process.lastTransactionId = lastStep.transactionId;
         process.status = StepStatus.COMPLETE;
       }
 
-      if (process.steps.every((item) => item.status !== StepStatus.QUEUED) && process.steps.some((item) => item.status === StepStatus.FAILED)) {
+      if (process.steps.some((item) => item.status === StepStatus.FAILED)) {
         process.status = StepStatus.FAILED;
       }
 
-      this.cacheProcessMap.set(processId, process);
+      this.aliveProcessMap.set(processId, process);
       this.state.dbService.upsertProcessTransaction(process).catch(console.error);
 
-      if (process.status === StepStatus.COMPLETE) {
-        this.cacheProcessMap.delete(processId);
+      if (process.status === StepStatus.COMPLETE || process.status === StepStatus.FAILED) {
+        this.aliveProcessMap.delete(processId);
       }
+
+      this.updateAliveProcess();
     }
   }
 
   public async updateProcessInfo (id: string, combineInfo: unknown, step?: ProcessStep) {
-    const process = this.cacheProcessMap.get(id);
+    const process = this.aliveProcessMap.get(id);
 
     if (process) {
       if (step) {
@@ -1424,8 +1489,8 @@ export default class TransactionService {
         process.combineInfo = combineInfo;
       }
 
-      this.cacheProcessMap.set(process.id, process);
-
+      this.aliveProcessMap.set(process.id, process);
+      this.updateAliveProcess();
       await this.state.dbService.upsertProcessTransaction(process);
     }
   }
@@ -1434,7 +1499,7 @@ export default class TransactionService {
     const transaction = this.getTransaction(transactionId);
 
     if (transaction && transaction.step?.processId) {
-      const process = this.cacheProcessMap.get(transaction.step.processId);
+      const process = this.aliveProcessMap.get(transaction.step.processId);
 
       if (process) {
         await this.state.inappNotificationService.createProcessNotification(process);

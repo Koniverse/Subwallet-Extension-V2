@@ -49,7 +49,7 @@ import { isProposalExpired, isSupportWalletConnectChain, isSupportWalletConnectN
 import { ResultApproveWalletConnectSession, WalletConnectNotSupportRequest, WalletConnectSessionRequest } from '@subwallet/extension-base/services/wallet-connect-service/types';
 import { SWStorage } from '@subwallet/extension-base/storage';
 import { AccountsStore } from '@subwallet/extension-base/stores';
-import { AccountJson, AccountProxyMap, AccountSignMode, AccountsWithCurrentAddress, BalanceJson, BasicTxErrorType, BasicTxWarningCode, BriefProcessStep, BriefSwapStep, BuyServiceInfo, BuyTokenInfo, CommonStepFeeInfo, CommonStepType, EarningProcessType, EarningRewardJson, NominationPoolInfo, OptimalYieldPathParams, ProcessStep, ProcessTransactionData, ProcessType, RequestAccountBatchExportV2, RequestAccountCreateSuriV2, RequestAccountNameValidate, RequestBatchJsonGetAccountInfo, RequestBatchRestoreV2, RequestBounceableValidate, RequestChangeTonWalletContractVersion, RequestCheckPublicAndSecretKey, RequestCrossChainTransfer, RequestDeriveCreateMultiple, RequestDeriveCreateV3, RequestDeriveValidateV2, RequestEarlyValidateYield, RequestExportAccountProxyMnemonic, RequestGetAllTonWalletContractVersion, RequestGetDeriveAccounts, RequestGetDeriveSuggestion, RequestGetYieldPoolTargets, RequestInputAccountSubscribe, RequestJsonGetAccountInfo, RequestJsonRestoreV2, RequestMetadataHash, RequestMnemonicCreateV2, RequestMnemonicValidateV2, RequestPrivateKeyValidateV2, RequestShortenMetadata, RequestStakeCancelWithdrawal, RequestStakeClaimReward, RequestSubmitProcessTransaction, RequestSubscribeProcessById, RequestTransfer, RequestUnlockDotCheckCanMint, RequestUnlockDotSubscribeMintedData, RequestYieldLeave, RequestYieldStepSubmit, RequestYieldWithdrawal, ResponseAccountBatchExportV2, ResponseAccountCreateSuriV2, ResponseAccountNameValidate, ResponseBatchJsonGetAccountInfo, ResponseCheckPublicAndSecretKey, ResponseDeriveValidateV2, ResponseExportAccountProxyMnemonic, ResponseGetAllTonWalletContractVersion, ResponseGetDeriveAccounts, ResponseGetDeriveSuggestion, ResponseGetYieldPoolTargets, ResponseInputAccountSubscribe, ResponseJsonGetAccountInfo, ResponseMetadataHash, ResponseMnemonicCreateV2, ResponseMnemonicValidateV2, ResponsePrivateKeyValidateV2, ResponseShortenMetadata, ResponseSubscribeProcessById, StakingTxErrorType, StepStatus, StorageDataInterface, SummaryEarningProcessData, SwapBaseTxData, SwapFeeType, SwapStepType, TokenSpendingApprovalParams, ValidateYieldProcessParams, YieldPoolType, YieldStepType, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
+import { AccountJson, AccountProxyMap, AccountSignMode, AccountsWithCurrentAddress, BalanceJson, BasicTxErrorType, BasicTxWarningCode, BriefProcessStep, BriefSwapStep, BuyServiceInfo, BuyTokenInfo, CommonStepFeeInfo, CommonStepType, EarningProcessType, EarningRewardJson, NominationPoolInfo, OptimalYieldPathParams, ProcessStep, ProcessTransactionData, ProcessType, RequestAccountBatchExportV2, RequestAccountCreateSuriV2, RequestAccountNameValidate, RequestBatchJsonGetAccountInfo, RequestBatchRestoreV2, RequestBounceableValidate, RequestChangeAllowOneSign, RequestChangeTonWalletContractVersion, RequestCheckPublicAndSecretKey, RequestCrossChainTransfer, RequestDeriveCreateMultiple, RequestDeriveCreateV3, RequestDeriveValidateV2, RequestEarlyValidateYield, RequestExportAccountProxyMnemonic, RequestGetAllTonWalletContractVersion, RequestGetDeriveAccounts, RequestGetDeriveSuggestion, RequestGetYieldPoolTargets, RequestInputAccountSubscribe, RequestJsonGetAccountInfo, RequestJsonRestoreV2, RequestMetadataHash, RequestMnemonicCreateV2, RequestMnemonicValidateV2, RequestPrivateKeyValidateV2, RequestShortenMetadata, RequestStakeCancelWithdrawal, RequestStakeClaimReward, RequestSubmitProcessTransaction, RequestSubscribeProcessById, RequestTransfer, RequestUnlockDotCheckCanMint, RequestUnlockDotSubscribeMintedData, RequestYieldLeave, RequestYieldStepSubmit, RequestYieldWithdrawal, ResponseAccountBatchExportV2, ResponseAccountCreateSuriV2, ResponseAccountNameValidate, ResponseBatchJsonGetAccountInfo, ResponseCheckPublicAndSecretKey, ResponseDeriveValidateV2, ResponseExportAccountProxyMnemonic, ResponseGetAllTonWalletContractVersion, ResponseGetDeriveAccounts, ResponseGetDeriveSuggestion, ResponseGetYieldPoolTargets, ResponseInputAccountSubscribe, ResponseJsonGetAccountInfo, ResponseMetadataHash, ResponseMnemonicCreateV2, ResponseMnemonicValidateV2, ResponsePrivateKeyValidateV2, ResponseShortenMetadata, ResponseSubscribeProcessAlive, ResponseSubscribeProcessById, StakingTxErrorType, StepStatus, StorageDataInterface, SummaryEarningProcessData, SwapBaseTxData, SwapFeeType, SwapStepType, TokenSpendingApprovalParams, ValidateYieldProcessParams, YieldPoolType, YieldStepType, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
 import { RequestAccountProxyEdit, RequestAccountProxyForget } from '@subwallet/extension-base/types/account/action/edit';
 import { RequestClaimBridge } from '@subwallet/extension-base/types/bridge';
 import { GetNotificationParams, RequestIsClaimedPolygonBridge, RequestSwitchStatusParams } from '@subwallet/extension-base/types/notification';
@@ -925,6 +925,12 @@ export default class KoniExtension {
 
   private setShowBalance ({ enable }: RequestChangeShowBalance) {
     this.#koniState.updateSetting('isShowBalance', enable);
+
+    return true;
+  }
+
+  private setAllowOneSign ({ allowOneSign }: RequestChangeAllowOneSign) {
+    this.#koniState.updateSetting('allowOneSign', allowOneSign);
 
     return true;
   }
@@ -3337,7 +3343,14 @@ export default class KoniExtension {
         };
       };
 
-      if (!this.#koniState.transactionService.checkProcessExist(processId)) {
+      const _step = path.steps[inputData.currentStep];
+
+      step = {
+        processId,
+        stepId: _step.id
+      };
+
+      if (!this.#koniState.transactionService.checkProcessExist(processId) && step) {
         const lastStep = path.steps[path.steps.length - 1];
         const combineInfo: SummaryEarningProcessData = {
           // In real case, only `YIELD` have multiple steps
@@ -3360,6 +3373,7 @@ export default class KoniExtension {
           address: address,
           type: ProcessType.EARNING,
           combineInfo,
+          currentStepId: step.stepId,
           steps: path.steps
             .map((step, index): ProcessStep => {
               const fee = convertFee(path.totalFee[index]);
@@ -3385,13 +3399,6 @@ export default class KoniExtension {
           status: StepStatus.QUEUED
         });
       }
-
-      const _step = path.steps[inputData.currentStep];
-
-      step = {
-        processId,
-        stepId: _step.id
-      };
     }
 
     return await this.#koniState.transactionService.handleTransaction({
@@ -3861,7 +3868,14 @@ export default class KoniExtension {
     let step: BriefProcessStep | undefined;
 
     if (processId) {
-      if (!this.#koniState.transactionService.checkProcessExist(processId)) {
+      const _step = process.steps[inputData.currentStep];
+
+      step = {
+        processId,
+        stepId: _step.id
+      };
+
+      if (!this.#koniState.transactionService.checkProcessExist(processId) && step) {
         const combineInfo: SwapBaseTxData = {
           provider: quote.provider,
           slippage: inputData.slippage,
@@ -3875,6 +3889,7 @@ export default class KoniExtension {
           id: processId,
           address: address,
           type: ProcessType.SWAP,
+          currentStepId: step.stepId,
           combineInfo,
           steps: inputData.process.steps
             .map((step, index): ProcessStep => {
@@ -3910,13 +3925,7 @@ export default class KoniExtension {
         });
       }
 
-      const _step = process.steps[inputData.currentStep];
       const isLastStep = inputData.currentStep === process.steps.length - 1;
-
-      step = {
-        processId,
-        stepId: _step.id
-      };
 
       if (isLastStep) {
         const metadata: BriefSwapStep = {
@@ -4277,6 +4286,31 @@ export default class KoniExtension {
     };
   }
 
+  private subscribeProcessAlive (id: string, port: chrome.runtime.Port): ResponseSubscribeProcessAlive {
+    const cb = createSubscription<'pri(process.subscribe.alive)'>(id, port);
+    const observable = this.#koniState.transactionService.observables.aliveProcess;
+
+    const convertData = (rs: Record<string, ProcessTransactionData>): ResponseSubscribeProcessAlive => {
+      return {
+        processes: rs
+      };
+    };
+
+    const subscription = observable.subscribe((rs) => {
+      cb(convertData(rs));
+    });
+
+    this.createUnsubscriptionHandle(id, subscription.unsubscribe);
+
+    port.onDisconnect.addListener((): void => {
+      this.cancelSubscription(id);
+    });
+
+    const value = this.#koniState.transactionService.values.aliveProcess;
+
+    return convertData(value);
+  }
+
   /* Multi process */
 
   // --------------------------------------------------------------
@@ -4381,6 +4415,8 @@ export default class KoniExtension {
         return this.setLanguage(request as RequestChangeLanguage);
       case 'pri(settings.saveShowBalance)':
         return this.setShowBalance(request as RequestChangeShowBalance);
+      case 'pri(settings.update.allowOneSign)':
+        return this.setAllowOneSign(request as RequestChangeAllowOneSign);
 
       case 'pri(price.getPrice)':
         return await this.getPrice();
@@ -4900,6 +4936,8 @@ export default class KoniExtension {
         return this.handleSubmitProcessTransaction(request as RequestSubmitProcessTransaction);
       case 'pri(process.subscribe.id)':
         return this.subscribeProcessById(request as RequestSubscribeProcessById, id, port);
+      case 'pri(process.subscribe.alive)':
+        return this.subscribeProcessAlive(id, port);
         /* Multi process */
 
       // Default
