@@ -16,7 +16,7 @@ type Props = ThemeProps;
 const Component: React.FC<Props> = (props: Props) => {
   const { className } = props;
   const [searchParams] = useSearchParams();
-  const transactionProgressId = searchParams.get('transaction-progress-id') || '';
+  const transactionProcessId = searchParams.get('transaction-process-id') || '';
 
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -24,9 +24,9 @@ const Component: React.FC<Props> = (props: Props) => {
 
   const viewProgress = useCallback(
     () => {
-      navigate(`/settings/notification?transaction-progress-id=${transactionProgressId}`);
+      navigate(`/settings/notification?transaction-process-id=${transactionProcessId}`);
     },
-    [navigate, transactionProgressId]
+    [navigate, transactionProcessId]
   );
 
   return (

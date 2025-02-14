@@ -1,10 +1,10 @@
 // Copyright 2019-2022 @polkadot/extension-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { AddressQrModal, AlertModal, AttachAccountModal, ClaimDappStakingRewardsModal, CreateAccountModal, DeriveAccountActionModal, DeriveAccountListModal, ImportAccountModal, ImportSeedModal, NewSeedModal, RemindBackupSeedPhraseModal, RequestCameraAccessModal, RequestCreatePasswordModal, TransactionProgressDetailModal } from '@subwallet/extension-koni-ui/components';
+import { AddressQrModal, AlertModal, AttachAccountModal, ClaimDappStakingRewardsModal, CreateAccountModal, DeriveAccountActionModal, DeriveAccountListModal, ImportAccountModal, ImportSeedModal, NewSeedModal, RemindBackupSeedPhraseModal, RequestCameraAccessModal, RequestCreatePasswordModal, TransactionProcessDetailModal } from '@subwallet/extension-koni-ui/components';
 import { CustomizeModal } from '@subwallet/extension-koni-ui/components/Modal/Customize/CustomizeModal';
 import { AccountDeriveActionProps } from '@subwallet/extension-koni-ui/components/Modal/DeriveAccountActionModal';
-import { ADDRESS_QR_MODAL, DERIVE_ACCOUNT_ACTION_MODAL, EARNING_INSTRUCTION_MODAL, GLOBAL_ALERT_MODAL, TRANSACTION_PROGRESS_DETAIL_MODAL } from '@subwallet/extension-koni-ui/constants';
+import { ADDRESS_QR_MODAL, DERIVE_ACCOUNT_ACTION_MODAL, EARNING_INSTRUCTION_MODAL, GLOBAL_ALERT_MODAL, TRANSACTION_PROCESS_DETAIL_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { useAlert, useGetConfig, useSetSessionLatest } from '@subwallet/extension-koni-ui/hooks';
 import Confirmations from '@subwallet/extension-koni-ui/Popup/Confirmations';
 import { RootState } from '@subwallet/extension-koni-ui/stores';
@@ -70,7 +70,7 @@ export interface WalletModalContextType {
   deriveModal: {
     open: (props: AccountDeriveActionProps) => void
   },
-  transactionProgressDetailModal: {
+  transactionProcessDetailModal: {
     open: (processId: string) => void
   }
 }
@@ -96,7 +96,7 @@ export const WalletModalContext = React.createContext<WalletModalContextType>({
   deriveModal: {
     open: noop
   },
-  transactionProgressDetailModal: {
+  transactionProcessDetailModal: {
     open: noop
   }
 });
@@ -159,12 +159,12 @@ export const WalletModalContextProvider = ({ children }: Props) => {
 
   const openProcessModal = useCallback((processId: string) => {
     setTransactionProcessId(processId);
-    activeModal(TRANSACTION_PROGRESS_DETAIL_MODAL);
+    activeModal(TRANSACTION_PROCESS_DETAIL_MODAL);
   }, [activeModal]);
 
   const closeProcessModal = useCallback(() => {
     setTransactionProcessId('');
-    inactiveModal(TRANSACTION_PROGRESS_DETAIL_MODAL);
+    inactiveModal(TRANSACTION_PROCESS_DETAIL_MODAL);
   }, [inactiveModal]);
 
   /* Process modal */
@@ -183,7 +183,7 @@ export const WalletModalContextProvider = ({ children }: Props) => {
     deriveModal: {
       open: openDeriveModal
     },
-    transactionProgressDetailModal: {
+    transactionProcessDetailModal: {
       open: openProcessModal
     }
   }), [checkAddressQrModalActive, closeAddressQrModal, closeAlert, openAddressQrModal, openAlert, openDeriveModal, openProcessModal]);
@@ -271,7 +271,7 @@ export const WalletModalContextProvider = ({ children }: Props) => {
       )
     }
 
-    <TransactionProgressDetailModal
+    <TransactionProcessDetailModal
       onCancel={closeProcessModal}
       processId={transactionProcessId}
     />
