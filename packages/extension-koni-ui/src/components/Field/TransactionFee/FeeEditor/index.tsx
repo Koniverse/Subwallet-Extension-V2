@@ -5,7 +5,7 @@ import { _getAssetDecimals, _getAssetPriceId, _getAssetSymbol } from '@subwallet
 import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
 import { FeeDetail, TransactionFee } from '@subwallet/extension-base/types';
 import { BN_ZERO } from '@subwallet/extension-base/utils';
-import { ChooseFeeTokenModal } from '@subwallet/extension-koni-ui/components/Modal/Swap';
+import ChooseFeeTokenModal from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/ChooseFeeTokenModal';
 import { ASSET_HUB_CHAIN_SLUGS, BN_TEN, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { useSelector } from '@subwallet/extension-koni-ui/hooks';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
@@ -75,10 +75,10 @@ const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, fee
     return BN_ZERO;
   }, []);
 
-  const convertedFeeValue = useMemo(() => {
+  const convertedFeeValueToUSD = useMemo(() => {
     return new BigN(estimateFee)
-      .dividedBy(BN_TEN.pow(decimals || 0))
       .multipliedBy(priceValue)
+      .dividedBy(BN_TEN.pow(decimals || 0))
       .toNumber();
   }, [decimals, estimateFee, priceValue]);
 
@@ -118,10 +118,6 @@ const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, fee
     return !!(chainValue && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) || feeType === 'evm'));
   }, [chainValue, feeType]);
 
-  const listSlug = listTokensCanPayFee?.map((item) => item.slug);
-
-  console.log('listSlug', listSlug);
-
   return (
     <>
       {
@@ -148,7 +144,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, fee
                     className={'__fee-price-value'}
                     decimal={0}
                     prefix={'~ $'}
-                    value={convertedFeeValue}
+                    value={convertedFeeValueToUSD}
                   />
                   <Tooltip
                     placement='leftTop'
@@ -186,8 +182,8 @@ const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, fee
       />
 
       <ChooseFeeTokenModal
-        estimatedFee={estimateFee}
-        items={listSlug}
+        convertedFeeValueToUSD={convertedFeeValueToUSD}
+        items={listTokensCanPayFee}
         modalId={CHOOSE_FEE_TOKEN_MODAL}
         onSelectItem={onSetTokenPayFee}
         selectedItem={currentTokenPayFee || tokenSlug}

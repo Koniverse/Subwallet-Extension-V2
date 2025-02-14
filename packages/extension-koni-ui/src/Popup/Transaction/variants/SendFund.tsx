@@ -901,24 +901,12 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   useEffect(() => {
     const fetchTokens = async () => {
       try {
-        const _response = await getTokensCanPayFee({
+        const response = await getTokensCanPayFee({
           chain: chainValue,
           proxyId: currentAccountProxy?.id || ''
         });
 
-        const response = _response.map((rs) => ({
-          slug: rs.slug,
-          free: rs.free || '0'
-        }));
-
-        const updatedTokens = nativeTokenSlug
-          ? [
-            { slug: nativeTokenSlug, free: '0' }, // Add native token with default balance if necessary
-            ...response.filter((token) => token.slug !== nativeTokenSlug)
-          ]
-          : response;
-
-        setListTokensCanPayFee(updatedTokens);
+        setListTokensCanPayFee(response);
       } catch (error) {
         console.error('Error fetching tokens:', error);
       }

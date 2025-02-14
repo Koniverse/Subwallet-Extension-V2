@@ -6,7 +6,6 @@ import { EvmEIP1559FeeOption, FeeCustom, FeeDefaultOption, FeeDetail, FeeOptionK
 import { BN_ZERO } from '@subwallet/extension-base/utils';
 import { AmountInput, BasicInputEvent, RadioGroup } from '@subwallet/extension-koni-ui/components';
 import { FeeOptionItem } from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/FeeOptionItem';
-import { ChooseFeeTokenModal } from '@subwallet/extension-koni-ui/components/Modal/Swap';
 import { ASSET_HUB_CHAIN_SLUGS, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { FormCallbacks, ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Button, Form, Icon, Input, Logo, ModalContext, Number, SwModal } from '@subwallet/react-ui';
@@ -232,8 +231,6 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
     }, 100);
   }, [activeModal]);
 
-  const listSlug = listTokensCanPayFee?.map((item) => item.slug);
-
   const onClickSubmit = useCallback(() => {
     if (optionSelected) {
       onSelectOption(optionSelected);
@@ -409,13 +406,13 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
           )
         }
       </SwModal>
-      <ChooseFeeTokenModal
-        estimatedFee={'100'} // todo: remove after testing
-        items={listSlug}
-        modalId={CHOOSE_FEE_TOKEN_MODAL}
-        onSelectItem={onSetTokenPayFee}
-        selectedItem={currentTokenPayFee || tokenSlug}
-      />
+      {/* <ChooseFeeTokenModal */}
+      {/*  estimatedFee={esti} */}
+      {/*  items={listTokensCanPayFee} */}
+      {/*  modalId={CHOOSE_FEE_TOKEN_MODAL} */}
+      {/*  onSelectItem={onSetTokenPayFee} */}
+      {/*  selectedItem={currentTokenPayFee || tokenSlug} */}
+      {/* /> */}
     </>
   );
 };
