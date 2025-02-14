@@ -44,13 +44,14 @@ type Props = ThemeProps & {
   onSetTokenPayFee: (slug: string) => void;
   currentTokenPayFee?: string;
   chainValue?: string;
+  destChainValue?: string;
   selectedFeeOption?: TransactionFee
 };
 
 // todo: will update dynamic later
 const modalId = 'FeeEditorModalId';
 
-const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, feeOptionsInfo, feeType, isLoading = false, listTokensCanPayFee, loading, onSelect, onSetTokenPayFee, renderFieldNode, selectedFeeOption, tokenSlug }: Props): React.ReactElement<Props> => {
+const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, estimateFee, feeOptionsInfo, feeType, isLoading = false, listTokensCanPayFee, loading, onSelect, onSetTokenPayFee, renderFieldNode, selectedFeeOption, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
   const { activeModal } = useContext(ModalContext);
   const assetRegistry = useSelector((root) => root.assetRegistry.assetRegistry);
@@ -115,8 +116,10 @@ const Component = ({ chainValue, className, currentTokenPayFee, estimateFee, fee
   }, [decimals, feeValue, isLoading, onClickEdit, renderFieldNode, symbol, feePriceValue]);
 
   const isEditButton = useMemo(() => {
-    return !!(chainValue && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) || feeType === 'evm'));
-  }, [chainValue, feeType]);
+    const isXcm = chainValue && destChainValue && chainValue !== destChainValue;
+
+    return !!(chainValue && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) || feeType === 'evm')) && !isXcm;
+  }, [chainValue, destChainValue, feeType]);
 
   return (
     <>
