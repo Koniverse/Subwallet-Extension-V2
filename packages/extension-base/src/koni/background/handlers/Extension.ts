@@ -1612,9 +1612,9 @@ export default class KoniExtension {
     const chainService = this.#koniState.chainService;
     const substrateApi = this.#koniState.getSubstrateApi(chain);
 
-    const tokensHasBalanceInfoMap = await this.#koniState.balanceService.getTokensHasBalanceIgnoreNative(proxyId, chain);
+    const tokensHasBalanceInfoMap = await this.#koniState.balanceService.getTokensHasBalance(proxyId, chain);
     const tokensHasBalanceSlug = Object.keys(tokensHasBalanceInfoMap);
-    const tokensHasBalanceInfo = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => token.metadata && token.metadata.multilocation);
+    const tokensHasBalanceInfo = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => token.assetType !== _AssetType.NATIVE && token.metadata && token.metadata.multilocation);
 
     const nativeTokenInfo = chainService.getNativeTokenInfo(chain);
 
@@ -1624,7 +1624,7 @@ export default class KoniExtension {
 
     const nativeMultiLocation = nativeTokenInfo.metadata.multilocation;
 
-    const tokensCanPayFeeSlug: string[] = [];
+    const tokensCanPayFeeSlug: string[] = [nativeTokenInfo.slug];
 
     await Promise.all(tokensHasBalanceInfo.map(async (tokenInfo) => {
       const tokenSlug = tokenInfo.slug;
