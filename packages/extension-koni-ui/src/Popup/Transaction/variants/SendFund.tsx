@@ -897,10 +897,12 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   useEffect(() => {
     const fetchTokens = async () => {
       try {
-        const response = await getTokensCanPayFee({
+        const _response = await getTokensCanPayFee({
           chain: chainValue,
           proxyId: currentAccountProxy?.id || ''
         });
+
+        const response = _response.filter((item) => item !== null && item !== undefined);
 
         setListTokensCanPayFee(response);
       } catch (error) {

@@ -40,7 +40,7 @@ type Props = ThemeProps & {
   renderFieldNode?: (params: RenderFieldNodeParams) => React.ReactNode;
   feeType?: string;
   loading?: boolean;
-  listTokensCanPayFee?: TokenHasBalanceInfo[];
+  listTokensCanPayFee: TokenHasBalanceInfo[];
   onSetTokenPayFee: (slug: string) => void;
   currentTokenPayFee?: string;
   chainValue?: string;
@@ -118,8 +118,8 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
   const isEditButton = useMemo(() => {
     const isXcm = chainValue && destChainValue && chainValue !== destChainValue;
 
-    return !!(chainValue && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) || feeType === 'evm')) && !isXcm;
-  }, [chainValue, destChainValue, feeType]);
+    return !!(chainValue && listTokensCanPayFee.length > 0 && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) || feeType === 'evm')) && !isXcm;
+  }, [chainValue, destChainValue, feeType, listTokensCanPayFee?.length]);
 
   return (
     <>
