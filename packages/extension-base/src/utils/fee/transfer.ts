@@ -221,7 +221,7 @@ export const calculateTransferMaxTransferable = async (id: string, request: Calc
   }
 
   maxTransferable = maxTransferable
-    .minus(new BigN(estimatedFee).multipliedBy(XCM_FEE_RATIO));
+    .minus(new BigN(estimatedFee));
 
   return {
     maxTransferable: !_isNativeToken(srcToken)

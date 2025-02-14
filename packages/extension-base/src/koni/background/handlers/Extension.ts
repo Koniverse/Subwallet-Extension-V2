@@ -1869,9 +1869,12 @@ export default class KoniExtension {
   }
 
   private async subscribeMaxTransferable (request: RequestSubscribeTransfer, id: string, port: chrome.runtime.Port): Promise<ResponseSubscribeTransfer> {
-    const { address, chain, destChain: _destChain, feeCustom, feeOption, isTransferLocalTokenAndPayThatTokenAsFee, token } = request;
+    const { address, chain, destChain: _destChain, feeCustom, feeOption, nonNativeTokenPayFeeSlug, token } = request;
     const cb = createSubscription<'pri(transfer.subscribe)'>(id, port);
 
+    const transferTokenInfo = this.#koniState.chainService.getAssetBySlug(token);
+    const isTransferLocalTokenAndPayThatTokenAsFee = !_isNativeToken(transferTokenInfo) && nonNativeTokenPayFeeSlug && nonNativeTokenPayFeeSlug === token;
+    const isTransferNativeTokenAndPayLocalTokenAsFee = _isNativeToken(transferTokenInfo) && nonNativeTokenPayFeeSlug;
     const srcToken = token ? this.#koniState.chainService.getAssetBySlug(token) : this.#koniState.chainService.getNativeTokenInfo(chain);
     const destToken = _destChain !== chain ? this.#koniState.getXcmEqualAssetByChain(_destChain, srcToken.slug) as _ChainAsset : srcToken;
     const srcChain = this.#koniState.chainService.getChainInfoByKey(chain);
@@ -1897,6 +1900,10 @@ export default class KoniExtension {
 
         transferInfo.feeOptions.estimatedFee = estimatedFeeNative;
         transferInfo.maxTransferable = (BigInt(transferInfo.maxTransferable) - BigInt(estimatedFeeLocal)).toString();
+      }
+
+      if (isTransferNativeTokenAndPayLocalTokenAsFee) {
+        transferInfo.maxTransferable = (BigInt(transferInfo.maxTransferable) + BigInt(transferInfo.feeOptions.estimatedFee)).toString();
       }
 
       return transferInfo;

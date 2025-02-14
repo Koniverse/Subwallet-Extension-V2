@@ -826,7 +826,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         destChain: destChainValue,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        isTransferLocalTokenAndPayThatTokenAsFee
+        nonNativeTokenPayFeeSlug: currentNonNativeTokenPayFee
       }, callback)
         .then((callback))
         .catch((e) => {
@@ -844,7 +844,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       cancel = true;
       id && cancelSubscription(id).catch(console.error);
     };
-  }, [assetValue, assetRegistry, chainValue, chainStatus, form, fromValue, destChainValue, selectedTransactionFee, isTransferLocalTokenAndPayThatTokenAsFee, nativeTokenSlug]);
+  }, [assetValue, assetRegistry, chainValue, chainStatus, form, fromValue, destChainValue, selectedTransactionFee, isTransferLocalTokenAndPayThatTokenAsFee, nativeTokenSlug, currentNonNativeTokenPayFee]);
 
   useEffect(() => {
     const bnTransferAmount = new BN(transferAmountValue || '0');
