@@ -32,8 +32,7 @@ import { addHexPrefix } from 'ethereumjs-util';
 import { ethers, TransactionLike } from 'ethers';
 import EventEmitter from 'eventemitter3';
 import { t } from 'i18next';
-import { BehaviorSubject, interval as rxjsInterval, Subscription } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { BehaviorSubject, interval as rxjsInterval, map as rxjsMap, Subscription } from 'rxjs';
 import { TransactionConfig, TransactionReceipt } from 'web3-core';
 
 import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
@@ -181,7 +180,7 @@ export default class TransactionService {
       },
       get aliveProcess () {
         return aliveProcessSubject.asObservable().pipe(
-          map((aliveProcessMap): Record<string, ProcessTransactionData> => {
+          rxjsMap((aliveProcessMap): Record<string, ProcessTransactionData> => {
             const aliveProcessRecord: Record<string, ProcessTransactionData> = {};
 
             aliveProcessMap.forEach((value, key) => {
