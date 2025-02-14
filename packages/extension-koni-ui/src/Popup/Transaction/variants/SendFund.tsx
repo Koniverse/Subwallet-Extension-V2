@@ -186,6 +186,10 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       return true;
     }
 
+    if (chainValue !== destChainValue && currentNonNativeTokenPayFee) {
+      return true;
+    }
+
     return !!chainInfo && !!assetInfo && _isChainEvmCompatible(chainInfo) && destChainValue === chainValue && _isNativeToken(assetInfo);
   }, [chainInfoMap, chainValue, destChainValue, currentNonNativeTokenPayFee, assetInfo]);
 
