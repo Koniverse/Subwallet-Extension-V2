@@ -1312,7 +1312,7 @@ export default class KoniExtension {
   }
 
   private async makeTransfer (inputData: RequestSubmitTransfer): Promise<SWTransactionResponse> {
-    const { chain, feeCustom, feeOption, from, isTransferLocalTokenAndPayThatTokenAsFee, to, tokenPayFeeSlug, tokenSlug, transferAll, transferBounceable, value } = inputData;
+    const { chain, feeCustom, feeOption, from, isTransferLocalTokenAndPayThatTokenAsFee, nonNativeTokenPayFeeSlug, to, tokenSlug, transferAll, transferBounceable, value } = inputData;
     const transferTokenInfo = this.#koniState.chainService.getAssetBySlug(tokenSlug);
     const [errors, ,] = validateTransferRequest(transferTokenInfo, from, to, value, transferAll);
 
@@ -1463,7 +1463,7 @@ export default class KoniExtension {
       chain,
       feeCustom,
       feeOption,
-      tokenPayFeeSlug,
+      nonNativeTokenPayFeeSlug,
       chainType,
       transferNativeAmount,
       transaction,
@@ -1478,7 +1478,7 @@ export default class KoniExtension {
   }
 
   private async makeCrossChainTransfer (inputData: RequestCrossChainTransfer): Promise<SWTransactionResponse> {
-    const { destinationNetworkKey, feeCustom, feeOption, from, isTransferLocalTokenAndPayThatTokenAsFee, originNetworkKey, to, tokenPayFeeSlug, tokenSlug, transferAll, transferBounceable, value } = inputData;
+    const { destinationNetworkKey, feeCustom, feeOption, from, isTransferLocalTokenAndPayThatTokenAsFee, nonNativeTokenPayFeeSlug, originNetworkKey, to, tokenSlug, transferAll, transferBounceable, value } = inputData;
 
     const originTokenInfo = this.#koniState.getAssetBySlug(tokenSlug);
     const destinationTokenInfo = this.#koniState.getXcmEqualAssetByChain(destinationNetworkKey, tokenSlug);
@@ -1597,7 +1597,7 @@ export default class KoniExtension {
       chainType: !isSnowBridgeEvmTransfer && !isAvailBridgeFromEvm && !isPolygonBridgeTransfer && !isPosBridgeTransfer ? ChainType.SUBSTRATE : ChainType.EVM,
       transferNativeAmount: _isNativeToken(originTokenInfo) ? value : '0',
       ignoreWarnings,
-      tokenPayFeeSlug,
+      nonNativeTokenPayFeeSlug,
       isTransferAll: transferAll,
       isTransferLocalTokenAndPayThatTokenAsFee,
       errors,

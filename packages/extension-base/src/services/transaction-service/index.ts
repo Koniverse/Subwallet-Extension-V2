@@ -120,7 +120,7 @@ export default class TransactionService {
 
     const transaction = transactionInput.transaction;
     const nativeTokenInfo = this.state.chainService.getNativeTokenInfo(chain);
-    const tokenPayFeeInfo = transactionInput.tokenPayFeeSlug ? this.chainService.getAssetBySlug(transactionInput.tokenPayFeeSlug) : undefined;
+    const tokenPayFeeInfo = transactionInput.nonNativeTokenPayFeeSlug ? this.chainService.getAssetBySlug(transactionInput.nonNativeTokenPayFeeSlug) : undefined;
 
     // Check duplicated transaction
     validationResponse.errors.push(...this.checkDuplicate(transactionInput));
@@ -1113,9 +1113,9 @@ export default class TransactionService {
     return emitter;
   }
 
-  private signAndSendSubstrateTransaction ({ address, chain, feeCustom, id, tokenPayFeeSlug, transaction, url }: SWTransaction): TransactionEmitter {
+  private signAndSendSubstrateTransaction ({ address, chain, feeCustom, id, nonNativeTokenPayFeeSlug, transaction, url }: SWTransaction): TransactionEmitter {
     const tip = (feeCustom as SubstrateTipInfo)?.tip || '0';
-    const feeAssetId = tokenPayFeeSlug ? this.state.chainService.getAssetBySlug(tokenPayFeeSlug).metadata?.multilocation as Record<string, any> : undefined;
+    const feeAssetId = nonNativeTokenPayFeeSlug ? this.state.chainService.getAssetBySlug(nonNativeTokenPayFeeSlug).metadata?.multilocation as Record<string, any> : undefined;
 
     const emitter = new EventEmitter<TransactionEventMap>();
     const eventData: TransactionEventResponse = {

@@ -481,7 +481,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         isTransferLocalTokenAndPayThatTokenAsFee: options.isTransferLocalTokenAndPayThatTokenAsFee,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        tokenPayFeeSlug: currentNonNativeTokenPayFee
+        nonNativeTokenPayFeeSlug: currentNonNativeTokenPayFee
       });
     } else {
       // Make cross chain transfer
@@ -497,7 +497,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         isTransferLocalTokenAndPayThatTokenAsFee: options.isTransferLocalTokenAndPayThatTokenAsFee,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        tokenPayFeeSlug: currentNonNativeTokenPayFee
+        nonNativeTokenPayFeeSlug: currentNonNativeTokenPayFee
       });
     }
 

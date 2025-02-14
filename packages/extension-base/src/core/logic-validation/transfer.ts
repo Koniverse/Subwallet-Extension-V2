@@ -457,9 +457,9 @@ export function checkBalanceWithTransactionFee (validationResponse: SWTransactio
     return;
   }
 
-  const { edAsWarning, extrinsicType, isTransferAll, skipFeeValidation, tokenPayFeeSlug } = transactionInput;
+  const { edAsWarning, extrinsicType, isTransferAll, nonNativeTokenPayFeeSlug, skipFeeValidation } = transactionInput;
 
-  if (skipFeeValidation || tokenPayFeeSlug) {
+  if (skipFeeValidation || nonNativeTokenPayFeeSlug) {
     return;
   }
 
