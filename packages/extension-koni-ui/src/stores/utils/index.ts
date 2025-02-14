@@ -518,9 +518,9 @@ export const subscribePriorityTokens = lazySubscribeMessage('pri(tokens.subscrib
 /* Priority tokens */
 
 /* Process multi steps */
-export const updateHasAliveProcess = (data: ResponseSubscribeProcessAlive) => {
-  store.dispatch({ type: 'requestState/updateHasAliveProcess', payload: data.hasAliveProcess });
+export const updateAliveProcess = (data: ResponseSubscribeProcessAlive) => {
+  store.dispatch({ type: 'requestState/updateAliveProcess', payload: data.processes });
 };
 
-export const subscribeHasAliveProcess = lazySubscribeMessage('pri(process.subscribe.alive)', null, updateHasAliveProcess, updateHasAliveProcess);
+export const subscribeHasAliveProcess = lazySubscribeMessage('pri(process.subscribe.alive)', null, updateAliveProcess, updateAliveProcess);
 /* Process multi steps */

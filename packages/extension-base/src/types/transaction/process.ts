@@ -34,7 +34,7 @@ export enum StepStatus {
   FAILED = 'FAILED'
 }
 
-export const PROCESSING_STEP_STATUS: StepStatus = [StepStatus.PREPARE, StepStatus.PROCESSING];
+export const PROCESSING_STEP_STATUS: StepStatus[] = [StepStatus.PREPARE, StepStatus.PROCESSING];
 
 export interface ProcessStep extends CommonStepDetail {
   fee: CommonStepFeeInfo;
@@ -94,5 +94,5 @@ export interface ResponseSubscribeProcessById {
 }
 
 export interface ResponseSubscribeProcessAlive {
-  hasAliveProcess: boolean;
+  processes: Record<string, ProcessTransactionData>;
 }

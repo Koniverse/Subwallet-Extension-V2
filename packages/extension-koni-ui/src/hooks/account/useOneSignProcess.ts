@@ -3,13 +3,15 @@
 
 import { AccountSignMode } from '@subwallet/extension-base/types';
 
+import { useSelector } from '../common';
 import useGetAccountSignModeByAddress from './useGetAccountSignModeByAddress';
 
 const useOneSignProcess = (address: string): boolean => {
   const signMode = useGetAccountSignModeByAddress(address);
 
-  // TODO: Add setting condition
-  return signMode === AccountSignMode.PASSWORD;
+  const allowOneSign = useSelector((state) => state.settings.allowOneSign);
+
+  return signMode === AccountSignMode.PASSWORD && allowOneSign;
 };
 
 export default useOneSignProcess;
