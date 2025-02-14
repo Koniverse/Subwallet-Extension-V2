@@ -53,7 +53,7 @@ export function validateTransferRequest (tokenInfo: _ChainAsset, from: _Address,
     errors.push(new TransactionError(BasicTxErrorType.INVALID_PARAMS, t('Not found TEP74 address for this token')));
   }
 
-  return [errors, keypair, transferValue];
+  return [errors, keypair, transferValue]; // todo: recheck keypair & transferValue
 }
 
 export function additionalValidateTransferForRecipient (

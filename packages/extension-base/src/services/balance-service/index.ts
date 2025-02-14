@@ -322,7 +322,7 @@ export class BalanceService implements StoppableServiceInterface {
     return await this.state.dbService.stores.balance.getBalanceMapByAddresses(address);
   }
 
-  public async getTokensHasBalance (proxyId: string, chain: string): Promise<Record<string, TokenHasBalanceInfo>> {
+  public async getTokensHasBalance (proxyId: string, chain: string, tokenSlug?: string): Promise<Record<string, TokenHasBalanceInfo>> {
     const balanceItems = await this.state.dbService.stores.balance.getBalanceHasAmount(proxyId, chain);
     const tokenHasBalanceInfoMap: Record<string, TokenHasBalanceInfo> = {};
 
@@ -332,6 +332,12 @@ export class BalanceService implements StoppableServiceInterface {
         free: balanceItem.free
       } as TokenHasBalanceInfo;
     });
+
+    if (tokenSlug) {
+      return {
+        [tokenSlug]: tokenHasBalanceInfoMap[tokenSlug]
+      };
+    }
 
     return tokenHasBalanceInfoMap;
   }

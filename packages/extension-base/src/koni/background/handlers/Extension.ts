@@ -1421,6 +1421,18 @@ export default class KoniExtension {
         return undefined;
       }
 
+      // Check enough free local to pay fee local
+      if (nonNativeTokenPayFeeSlug) {
+        const nonNativeFee = BigInt(inputTransaction.estimateFee?.value || '0'); // todo: estimateFee should be must-have, need to refactor interface
+        const proxyId = this.#koniState.keyringService.context.currentAccount.proxyId;
+        const nonNativeTokenPayFeeInfo = await this.#koniState.balanceService.getTokensHasBalance(proxyId, chain, nonNativeTokenPayFeeSlug);
+        const nonNativeTokenPayFeeBalance = BigInt(nonNativeTokenPayFeeInfo[nonNativeTokenPayFeeSlug].free);
+
+        if (nonNativeFee > nonNativeTokenPayFeeBalance) {
+          inputTransaction.errors.push(new TransactionError(BasicTxErrorType.NOT_ENOUGH_BALANCE));
+        }
+      }
+
       // Check ed for sender
       if (!isTransferNativeToken) {
         const [_senderSendingTokenTransferable, _receiverNativeTotal] = await Promise.all([
