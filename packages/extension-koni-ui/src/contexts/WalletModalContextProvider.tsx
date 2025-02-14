@@ -106,7 +106,7 @@ const alertModalId = GLOBAL_ALERT_MODAL;
 export const WalletModalContextProvider = ({ children }: Props) => {
   const { activeModal, checkActive, hasActiveModal, inactiveAll, inactiveModal, inactiveModals } = useContext(ModalContext);
   const [searchParams, setSearchParams] = useSearchParams();
-  const { hasConfirmations } = useSelector((state: RootState) => state.requestState);
+  const hasConfirmations = useSelector((state: RootState) => state.requestState.hasConfirmations);
   const { hasMasterPassword, isLocked } = useSelector((state: RootState) => state.accountState);
   const { getConfig } = useGetConfig();
   const { onHandleSessionLatest, setTimeBackUp } = useSetSessionLatest();
